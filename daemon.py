@@ -10,8 +10,8 @@ import threading
 from concurrent.futures import ThreadPoolExecutor, wait
 from datetime import datetime, timedelta, timezone
 
-import gen_data.config as config
-from gen_data.physics_engine import (
+import config
+from physics_engine import (
     build_topology,
     build_schedule,
     build_episodes,
@@ -19,10 +19,10 @@ from gen_data.physics_engine import (
     Runtime,
     stable_seed
 )
-from gen_data.protocol.modbus_adapter import ModbusTcpAdapter
-from gen_data.protocol.opcua_adapter import OpcUaBinaryAdapter
-from gen_data.line_worker import LineWorker
-from gen_data.state_tracker import (
+from protocol.modbus_adapter import ModbusTcpAdapter
+from protocol.opcua_adapter import OpcUaBinaryAdapter
+from line_worker import LineWorker
+from state_tracker import (
     load_state,
     save_state,
     get_global_last_tick,
@@ -94,7 +94,7 @@ def build_workers_and_start_time():
         ) for a in assets
     }
 
-    import gen_data.line_worker as line_worker_module
+    import line_worker as line_worker_module
     line_worker_module.PROTOCOL_ADAPTERS = PROTOCOL_ADAPTERS
 
     default_adapter_cls = PROTOCOL_ADAPTERS.get(config.GEN_DATA_PROTOCOL, ModbusTcpAdapter)
@@ -126,7 +126,8 @@ def run_forever():
 
     print(
         f"gen_data 데몬 시작 — 라인 {len(workers)}개, 기본 프로토콜={config.GEN_DATA_PROTOCOL} "
-        f"(line_protocol_map.json이 있는 라인만 override), 동일 타임라인으로 매 tick 병렬 저장"
+        f"(line_protocol_map.json이 있는 라인만 override), 동일 타임라인으로 매 tick 병렬 저장; "
+        f"output={config.OUTPUT_DIR_SOURCE}, settings={config.SETTINGS_SOURCE}, seed={config.SEED_SOURCE}"
     )
 
     with ThreadPoolExecutor(max_workers=config.GEN_DATA_MAX_PARALLEL_LINES) as pool:

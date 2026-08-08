@@ -7,7 +7,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-from gen_data.protocol.raw_envelope import write_envelope
+from protocol.raw_envelope import write_envelope
 
 PROTOCOL_ADAPTERS: dict = {}  # daemon.py에서 기동 시 등록 (protocol_name -> AdapterClass)
 
@@ -81,7 +81,7 @@ class LineWorker:
 
     def _compute_physics_value(self, asset: dict, observed_at: datetime) -> dict:
         """v3.1 physics_engine을 활용한 자산별 센서 및 물리 상태 관측치 산출."""
-        from gen_data.physics_engine import (
+        from physics_engine import (
             coupled_cnc_values,
             ar_noise,
             operating_state,

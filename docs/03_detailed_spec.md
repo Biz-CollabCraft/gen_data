@@ -1,22 +1,24 @@
 # gen_data — 03. 구체적인 내용
 
+> 구현 상태: `config.py`, protocol facade, worker, daemon, CLI는 현재 PR에 구현되어
+> 있다. §8의 `DaemonState` 확장안과 §8-1 `server.py` 제어 API는 **후속 설계**이며
+> 현재 파일/API로 존재하지 않는다.
+
 ## 1. `.env` 변수 정의
 
 `.env`는 이제 생성 설정값을 직접 담지 않는다. 대신 **설정 파일 경로**와 **출력 경로**만 지정하고, 실제 생성 설정(seed, interval, speed 등)은 그 설정 파일이 있으면 그 파일을, 없으면 하드코딩된 기본값을 따른다.
 
 ```env
-GEN_DATA_OUTPUT_DIR=C:\kosa\project\final\gen_data\output
-GEN_DATA_SETTING_CONFIG_PATH=C:\kosa\project\final\gen_data\setting.config
-GEN_DATA_API_HOST=127.0.0.1
-GEN_DATA_API_PORT=8100
+GEN_DATA_OUTPUT_DIR=/path/to/gen_data/output
+GEN_DATA_SETTING_CONFIG_PATH=/path/to/gen_data/setting.config
 ```
 
 | 변수 | 의미 | 비고 |
 |---|---|---|
-| `GEN_DATA_OUTPUT_DIR` | `.raw` 및 파생 산출물 저장 루트 | **미설정 또는 빈 값이면 기본 경로(`C:\kosa\project\final\gen_data\output`)로 자동 폴백** — 에러로 중단하지 않음. 다만 폴백이 발생했다는 사실은 기동 로그에 남긴다(§3) |
+| `GEN_DATA_OUTPUT_DIR` | `.raw` 및 파생 산출물 저장 루트 | **미설정 또는 빈 값이면 저장소 루트의 `output/`로 자동 폴백** — 에러로 중단하지 않음. `OUTPUT_DIR_SOURCE`로 출처를 남긴다. |
 | `GEN_DATA_SETTING_CONFIG_PATH` | 생성 설정 파일(`setting.config`)의 경로 | 미설정 또는 그 경로에 파일이 없으면 하드코딩된 기본값으로 동작 (에러 아님) |
-| `GEN_DATA_API_HOST` / `GEN_DATA_API_PORT` | `server.py`(§8-1) FastAPI 제어 서버의 바인딩 주소/포트 | 기본값 `127.0.0.1:8100`. prototype의 `api/server.py`(포트 8000)와 겹치지 않도록 별도 포트 사용 |
-| `GEN_DATA_SEED` | 시뮬레이션 난수 시드 값 (선택적 최우선 덮어쓰기) | `.env`에 설정 시 최우선 적용. 정수(예: `42`) 지정 시 고정 시드, `"random"`, `"-1"`, `"none"` 지정 시 실행 시점의 완전 난수 시드 적용. 미지정 시 `setting.config` ➔ 기본값 `42` |
+| `GEN_DATA_API_HOST` / `GEN_DATA_API_PORT` | 후속 계획인 `server.py`용 설정 | 현재 PR의 실행 코드에서는 아직 사용하지 않음 |
+| `GEN_DATA_SEED` | 시뮬레이션 난수 시드 값 (선택적 최우선 덮어쓰기) | `.env`/환경변수에 설정 시 최우선 적용. 정수(예: `42`) 지정 시 고정 시드, `"random"`, `"-1"`, `"none"` 지정 시 프로세스 시작 때 시스템 엔트로피로 새 정수 seed를 한 번 생성. 미지정 시 `setting.config` ➔ 기본값 `42` |
 
 ### `setting.config` 파일 형식
 
@@ -97,71 +99,29 @@ gen_data가 만드는 실시간 `.raw` 및 Layer 1/2 산출물은 위 표의 **C
 
 ## 3. `config.py`
 
-```python
-import os
-import json
-from pathlib import Path
-from dotenv import load_dotenv
+현재 `config.py`가 실제 계약의 기준이다.
 
-load_dotenv()
+- 외부 의존성 없이 저장소 루트 `.env`의 단순 `KEY=VALUE`를 읽는다.
+- `GEN_DATA_OUTPUT_DIR`이 없거나 빈 값이면 저장소 루트의 `output/`로 폴백한다.
+- `GEN_DATA_SETTING_CONFIG_PATH`가 없으면 저장소 루트의 `setting.config`를 찾는다.
+- `setting.config`는 JSON object이며 `DEFAULTS`에 부분 병합된다.
+- `GEN_DATA_SEED` 환경변수는 `setting.config`보다 우선한다.
+- `random`, `-1`, `none`은 프로세스 시작 때 시스템 엔트로피로 새 정수 seed를 한 번
+  생성한다. 한 실행 안에서는 모든 컴포넌트가 같은 정수 seed를 공유한다.
+- `OUTPUT_DIR_SOURCE`, `SETTINGS_SOURCE`, `SEED_SOURCE`를 기동 로그에 노출한다.
 
-# GEN_DATA_OUTPUT_DIR — 미설정/빈 값이면 기본 경로로 폴백 (에러로 중단하지 않음)
-DEFAULT_OUTPUT_DIR = r"C:\kosa\project\final\gen_data\output"
-_raw_output_dir = os.environ.get("GEN_DATA_OUTPUT_DIR")
-if _raw_output_dir:
-    GEN_DATA_OUTPUT_DIR = _raw_output_dir
-    OUTPUT_DIR_SOURCE = "env"
-else:
-    GEN_DATA_OUTPUT_DIR = DEFAULT_OUTPUT_DIR
-    OUTPUT_DIR_SOURCE = "default_fallback"  # daemon.py 기동 로그에 이 값을 그대로 노출 (조용한 폴백 방지)
+`GEN_DATA_API_HOST`/`GEN_DATA_API_PORT`는 §8-1의 후속 제어 API가 구현될 때 추가할
+설정이며 현재 `config.py`에는 존재하지 않는다.
 
-GEN_DATA_API_HOST = os.environ.get("GEN_DATA_API_HOST", "127.0.0.1")
-GEN_DATA_API_PORT = int(os.environ.get("GEN_DATA_API_PORT", "8100"))
+## 4. `physics_engine.py` — Canonical V3.1 호환 facade
 
-# 생성 설정의 하드코딩된 기본값 (setting.config가 없거나 특정 키가 빠졌을 때 사용)
-DEFAULTS = {
-    "GEN_DATA_SEED": 42,
-    "GEN_DATA_INTERVAL_MINUTES": 10,
-    "GEN_DATA_SPEED": 60,
-    "GEN_DATA_BACKFILL_HOURS": 6,
-    "GEN_DATA_MAX_PARALLEL_LINES": 20,
-    "GEN_DATA_PROTOCOL": "modbus_tcp",
-}
+현재 구현은 v3.1의 검증된 물리 함수와 타입을 중복 복사하지 않고
+`scripts/generate_canonical_dataset.py`에서 import해 facade로 노출한다. PR #2 merge 후에는
+저장소 하위 `predictive_maintenance_canonical_v3_1/`가 기본 기준본이다. PR #1 단독
+checkout에서는 `GEN_DATA_CANONICAL_ROOT`로 외부 Canonical V3.1 루트를 지정한다.
 
-def _load_generation_settings() -> tuple[dict, str]:
-    config_path = os.environ.get("GEN_DATA_SETTING_CONFIG_PATH")
-    if config_path and Path(config_path).exists():
-        with open(config_path, "r", encoding="utf-8") as f:
-            file_settings = json.load(f)
-        merged = {**DEFAULTS, **file_settings}  # 파일에 없는 키는 기본값으로 보충
-        return merged, "setting.config"
-    return dict(DEFAULTS), "hardcoded_default"
-
-_settings, SETTINGS_SOURCE = _load_generation_settings()
-
-# GEN_DATA_SEED — .env 환경변수 우선 적용, "random"/"-1"/"none" 시 완전 난수(None) 처리
-_env_seed = os.environ.get("GEN_DATA_SEED")
-_raw_seed = _env_seed if _env_seed is not None else _settings.get("GEN_DATA_SEED", 42)
-
-if str(_raw_seed).strip().lower() in ("random", "-1", "none"):
-    GEN_DATA_SEED = None  # None이면 난수 생성기 초기화 시 시스템 엔트로피 시드(완전 난수) 적용
-    SEED_SOURCE = "random"
-else:
-    GEN_DATA_SEED = int(_raw_seed)
-    SEED_SOURCE = "env" if _env_seed is not None else SETTINGS_SOURCE
-
-GEN_DATA_INTERVAL_MINUTES = int(_settings["GEN_DATA_INTERVAL_MINUTES"])
-GEN_DATA_SPEED = float(_settings["GEN_DATA_SPEED"])
-GEN_DATA_BACKFILL_HOURS = int(_settings["GEN_DATA_BACKFILL_HOURS"])
-GEN_DATA_MAX_PARALLEL_LINES = int(_settings["GEN_DATA_MAX_PARALLEL_LINES"])
-GEN_DATA_PROTOCOL = _settings["GEN_DATA_PROTOCOL"]
-```
-
-`SETTINGS_SOURCE`는 `daemon.py`가 기동 로그에 "어느 설정을 따랐는지"(`setting.config` 파일 사용 vs 하드코딩된 기본값 사용)를 출력할 때 쓴다 — 이 값을 남기지 않으면 실행 후 왜 이런 설정으로 돌았는지 추적할 방법이 없다. 같은 이유로 `OUTPUT_DIR_SOURCE`(`"env"` 또는 `"default_fallback"`)도 기동 로그에 함께 출력한다 — 폴백을 허용하더라도, 폴백이 실제로 일어났다는 사실 자체는 조용히 묻히지 않게 한다.
-
-## 4. `physics_engine.py` — v3.1 물리 공식을 gen_data 구조에 맞게 재구성
-
-gen_data는 v3.1의 `scripts/generate_canonical_dataset.py`를 코드로 직접 가져다 쓰지(import) 않는다. v3.1의 배치 루프는 "전체 자산을 한 tick씩 순회하며 2개의 공유 CSV writer에 쓰는" 구조인 반면, gen_data는 "라인별로 독립적으로 한 tick만 처리하고 프로토콜 프레임으로 인코딩하는" 구조라 애초에 루프 형태가 다르다. 그래서 v3.1의 **물리 공식(수식·조건)만 참고해서 gen_data 구조에 맞게 재구성**한다 — 파일을 그대로 옮겨오는 게 아니라, 같은 계산 결과가 나오도록 gen_data 자체 코드로 다시 작성한다.
+아래 재구성 코드와 `test_physics_parity.py`는 초기 대안 설계를 보존한 참고 예시이며
+**현재 runtime 구현이 아니다**. 현재 runtime은 위에서 설명한 import facade 방식이다.
 
 ```python
 # gen_data/physics_engine.py — v3.1 SCHEMA.md/ARCHITECTURE_DECISION.md의 공식을 근거로 재구성
@@ -203,9 +163,12 @@ TWF: tool_wear between 200 and 240 minutes
 RNF: condition-independent random failure
 ```
 
-### 정합성 검증 — checksum이 아니라 결과값 비교로
+### 정합성 검증 — 현재 facade 기준
 
-**v3.1 패키지 전체를 그대로 가져다 쓰는 게 아니므로, "로컬 v3.1 파일이 공식 배포본과 체크섬이 일치하는가"를 확인하는 절차는 여기서는 의미가 없다** (그 절차는 파일을 통째로 재사용할 때만 유효하다). 대신 **재구성한 코드가 v3.1과 같은 입력에서 같은 결과를 내는지 값으로 직접 비교**하는 정합성 테스트를 둔다.
+현재 구현은 Canonical V3.1 함수를 직접 재사용하므로 별도의 재구성 parity가 merge
+조건은 아니다. 아래 테스트 스케치는 초기 대안 설계 기록이며 현재 테스트 파일로
+존재하지 않는다. PR #1에서는 Canonical 기준본을 지정한 상태의 import/export smoke
+check를 수행하고, 데이터 자체의 검증·재현성은 PR #2의 validation script가 담당한다.
 
 ```python
 # gen_data/tests/test_physics_parity.py (개발 시 1회성으로 실행, 런타임에는 실행하지 않음)
@@ -215,7 +178,7 @@ def test_coupled_cnc_values_matches_v3_1_reference():
     ...  # 두 결과의 process_temperature_k, rotational_speed_rpm 차이가 1e-6 이내인지 assert
 ```
 
-이 테스트는 **gen_data 개발/변경 시점에 한 번 확인하면 되는 것**이지, 데몬이 매번 기동할 때마다 v3.1 파일을 열어 대조하는 절차가 아니다 — 재구성 코드이므로 실행 시점에 v3.1 파일 자체가 존재할 필요조차 없다.
+이 테스트 스케치는 현재 실행 대상이 아니다.
 
 ## 5. `state_tracker.py`
 
@@ -300,7 +263,8 @@ class LineWorker:
 
 ## 8. `daemon.py` — 공유 타임라인 + 병렬 실행
 
-**변경 사항**: `server.py`(§8-1)가 외부에서 상태 조회·설정 변경·수동 tick 트리거를 할 수 있도록, 지역 변수로 갖고 있던 `speed`/`interval_minutes`/`current_time`을 `DaemonState`라는 스레드 간 공유 객체로 옮긴다. 인터벌 대기도 `time.sleep()` 대신 `threading.Event.wait(timeout=...)`으로 바꿔, 대기 중에도 외부 트리거로 즉시 깨어날 수 있게 한다.
+현재 구현은 고정된 `speed`/`interval_minutes`로 공유 타임라인을 병렬 실행한다.
+아래 `DaemonState` 기반 런타임 제어는 **후속 설계이며 현재 runtime 구현이 아니다**.
 
 ```python
 # gen_data/daemon_state.py (신규)
@@ -374,9 +338,10 @@ def run_forever(daemon_state: DaemonState):
 
 **타임라인이 하나뿐인 이유**: 모든 라인이 같은 `current_time`을 공유하고, 그 시각에 대한 처리를 동시에 실행한다. 실제 공장은 라인마다 clock이 미묘하게 다를 수 있지만(§별도 논의에서 확인된 실제와의 차이), 이번 gen_data는 **"동일 타임라인 가정 하의 병렬 저장"**을 설계 목표로 명시적으로 채택했다 — 실제 현장 재현이 아니라 이 가정 위에서의 구현임을 문서에 남긴다.
 
-## 8-1. `server.py` — FastAPI 제어 서버 (신규)
+## 8-1. `server.py` — FastAPI 제어 서버 (후속 계획, 현재 미구현)
 
-`run.py` 실행 시 데몬(메인 스레드)과 별도 스레드로 함께 기동되어, 데몬을 외부에서 모니터링·제어할 수 있게 한다.
+아래 내용은 후속 구현 목표다. 현재 PR에는 `server.py`와 `daemon_state.py`가 없으며,
+`run.py`는 데몬만 실행한다.
 
 ```python
 # gen_data/server.py
@@ -449,20 +414,22 @@ if __name__ == "__main__":
 ## 9. 실행 방법
 
 ```bash
-cd C:\kosa\project\final
-python -m gen_data.run
-# 기동 로그 첫 줄에 "생성 설정 출처: setting.config" 또는
-# "생성 설정 출처: hardcoded_default"가 반드시 출력된다 (config.SETTINGS_SOURCE 그대로 노출)
-# 두 번째 줄에 "출력 경로 출처: env" 또는 "출력 경로 출처: default_fallback"도 함께 출력된다
-# Ctrl+C(SIGINT) 또는 SIGTERM으로 정상 종료 → 다음 기동 시 마지막 tick부터 이어서 시작
+cd /path/to/gen_data
+# PR #1 단독 checkout에서 Canonical 기준본이 저장소 밖에 있으면 선택적으로 지정
+export GEN_DATA_CANONICAL_ROOT=/path/to/predictive_maintenance_canonical_v3_1
+python run.py
 ```
+
+기동 로그에는 `OUTPUT_DIR_SOURCE`, `SETTINGS_SOURCE`, `SEED_SOURCE`가 함께 표시된다.
+PR #2 merge 후 Canonical 폴더가 저장소 하위에 있으면 `GEN_DATA_CANONICAL_ROOT`는
+지정하지 않아도 된다.
 
 ## 10. Acceptance Criteria (통합)
 
 | # | 기준 |
 |---|---|
-| 1 | `GEN_DATA_OUTPUT_DIR` 미설정/빈 값이어도 에러 없이 기본 경로(`C:\kosa\project\final\gen_data\output`)로 정상 기동, `OUTPUT_DIR_SOURCE` 값이 로그에 남음 |
-| 2 | `physics_engine.py`의 재구성된 함수가 v3.1과 동일 입력에서 동일 결과를 내는지 정합성 테스트(`test_physics_parity.py`)로 확인됨 (checksum 대조 아님) |
+| 1 | `GEN_DATA_OUTPUT_DIR` 미설정/빈 값이어도 저장소 루트 `output/`로 폴백하고 `OUTPUT_DIR_SOURCE`가 남음 |
+| 2 | Canonical V3.1 기준본이 저장소 하위에 있거나 `GEN_DATA_CANONICAL_ROOT`로 지정되면 `physics_engine.py` facade가 정상 import됨 |
 | 3 | 라인 폴더가 자산 그룹 수(최대 20)만큼 생성, 각 라인 폴더에 `line_unit_map.json` 자동 생성 |
 | 4 | 같은 tick의 모든 라인 `.raw` 파일명(`{HHMMSS}.raw`)이 정확히 동일한 시각으로 생성 |
 | 5 | 전 라인 처리 시간이 "라인 수 × 단일 라인 처리시간"이 아니라 "단일 라인 처리시간"에 근접 (병렬성 검증) |
@@ -472,9 +439,9 @@ python -m gen_data.run
 | 9 | 최초 기동 시 `GEN_DATA_BACKFILL_HOURS`만큼 지연 없이 즉시 채워짐 |
 | 10 | `GEN_DATA_SETTING_CONFIG_PATH`가 가리키는 파일이 실제 존재하면, 그 파일의 값(부분 키만 있어도)이 하드코딩된 기본값보다 우선 적용됨 |
 | 11 | `GEN_DATA_SETTING_CONFIG_PATH` 미설정이거나 파일이 없으면, 에러 없이 하드코딩된 기본값(`config.DEFAULTS`)으로 정상 기동됨 |
-| 12 | `GET /api/status` 호출 시 `status`/`current_time`/`speed`/`interval_minutes`/`asset_count`가 실제 데몬 상태와 일치 |
-| 13 | `POST /api/cycle/next` 호출 시 인터벌 대기 중이었더라도 즉시 다음 tick이 실행되고 각 라인 `.raw`에 새 행이 append됨 |
-| 14 | `POST /api/config`로 `speed`를 변경하면, 그다음 tick부터 실제 대기 시간이 변경된 배속을 반영함 (데몬 재시작 불필요) |
+| 12 | **후속 계획**: `GET /api/status`가 실제 데몬 상태와 일치 |
+| 13 | **후속 계획**: `POST /api/cycle/next`가 인터벌 대기를 깨우고 다음 tick을 실행 |
+| 14 | **후속 계획**: `POST /api/config`의 runtime speed 변경을 다음 tick부터 반영 |
 
 ## 11. Non-Goals
 
@@ -486,7 +453,7 @@ python -m gen_data.run
 
 ## 12. 미결 사항 (다음 세션 확정 필요)
 
-1. **`physics_engine.py` 재구성 결과의 정합성 테스트 실행 및 통과 확인** — §4에서 설계한 `test_physics_parity.py`를 실제로 v3.1 `scripts/generate_canonical_dataset.py`와 대조 실행해, 재구성한 `coupled_cnc_values`/`ar_noise` 등이 동일 seed·동일 입력에서 v3.1과 오차 허용범위 내로 일치하는지 확인 필요 (지난 세션엔 v3.1 코드의 함수 존재 자체만 확인했고, 재구성 버전과의 수치 대조는 아직 수행 안 됨)
+1. **제어 API 구현 여부 확정** — 현재 미구현인 `daemon_state.py`/`server.py`를 후속 PR에서 구현할지, 문서에서 장기 계획으로만 유지할지 팀 결정 필요
 2. Topology 소스 파일 준비 방식(Case A: 구조화 파일 vs Case B: Agent 추론) — gen_data가 만드는 `line_unit_map.json`이 Case A의 `asset_master.csv`/`asset_relation.csv` 역할을 일부 대신할 수 있는지 검토
 3. `.agents/` 설정 개선안(판단 분리 원칙) 실제 파일 반영 여부 — gen_data는 Agent가 없어 직접 대상은 아니지만, 이후 decode agent 작업 시 필요
 

@@ -1,6 +1,9 @@
 # gen_data — 02. 구조
 
-## 디렉터리 구조 (확정본)
+## 디렉터리 구조
+
+별도 표시가 없는 파일은 현재 PR에 구현되어 있다. `daemon_state.py`와
+`server.py`는 후속 제어 API 설계 항목이며 **현재 PR에는 구현되어 있지 않다**.
 
 ```
 gen_data/
@@ -15,9 +18,9 @@ gen_data/
 │   └── raw_envelope.py           # 프로토콜 무관 캡처 envelope
 ├── line_worker.py                # 라인 1개의 "한 tick 처리" 단위
 ├── daemon.py                     # 공유 타임라인 루프 + 라인 병렬 실행
-├── daemon_state.py                # server.py ↔ daemon.py 간 스레드 공유 상태
-├── server.py                      # FastAPI 제어 서버 (상태 조회/수동 tick/설정 변경)
-├── run.py                        # CLI 진입점 — 데몬(메인 스레드) + server.py(별도 스레드) 함께 기동
+├── daemon_state.py                # [후속 계획] server.py ↔ daemon.py 간 공유 상태
+├── server.py                      # [후속 계획] FastAPI 제어 서버
+├── run.py                         # 현재 CLI 진입점 — daemon.run_forever() 실행
 ├── docs/                          # 본 문서 3종
 │   ├── 01_overview.md
 │   ├── 02_architecture.md        # (본 파일)
@@ -39,17 +42,17 @@ gen_data/
 | 파일 | 책임 |
 |---|---|
 | `config.py` | `GEN_DATA_OUTPUT_DIR`은 `.env`에 있으면 그 값을, 없거나 빈 값이면 기본 경로로 자동 폴백(에러 아님). 나머지 생성 설정(seed·interval·speed·protocol 등)은 `setting.config` 파일이 있으면 그 값을, 없으면 하드코딩된 기본값을 사용. 두 경우 모두 어떤 값을 썼는지(`OUTPUT_DIR_SOURCE`, `SETTINGS_SOURCE`)를 기동 로그에 남김 |
-| `physics_engine.py` | v3.1 `scripts/generate_canonical_dataset.py`의 물리 공식(수식·조건)을 gen_data 구조에 맞게 재구성 — 파일을 그대로 가져다 쓰지 않음. v3.1은 초기 압축기·CNC 시뮬레이터 프로토타입이 개선을 거쳐 완성된 최종본이므로(§01 개요 "정체성" 참조), gen_data가 물리 공식의 근거로 삼는 소재지는 v3.1 하나로 확정되어 있다. 정합성은 값 비교 테스트로 확인(§03 상세 스펙) |
+| `physics_engine.py` | Canonical V3.1 `scripts/generate_canonical_dataset.py`를 호환 facade로 import해 검증된 물리 함수와 타입을 재사용한다. PR #2 merge 후에는 저장소 하위 `predictive_maintenance_canonical_v3_1/`를 사용하며, PR #1 단독 검증 시 `GEN_DATA_CANONICAL_ROOT`로 외부 기준본을 지정할 수 있다. |
 | `state_tracker.py` | 전역 `last_tick` 하나만 저장/조회 |
 | `protocol/base_protocol.py` | `encode_response()`/`decode_response()` 인터페이스 정의 |
 | `protocol/modbus_adapter.py` | 값 → Modbus TCP MBAP+PDU 프레임, 그 역 |
 | `protocol/opcua_adapter.py` | 값 → OPC-UA DataValue(Value/StatusCode/SourceTimestamp/ServerTimestamp) 바이너리, 그 역 |
 | `protocol/raw_envelope.py` | 프레임 앞에 캡처 시각+프로토콜 식별자를 붙여 `.raw`에 append |
 | `line_worker.py` | 라인 하나의 자산들에 대해 "한 tick분" 물리 계산 → 인코딩 → 캡처 → 가공까지 수행 |
-| `daemon.py` | 전체 자산을 라인 단위로 묶고, 공유 타임라인으로 매 tick마다 전 라인을 병렬 실행. `DaemonState`를 통해 `server.py`와 상태(현재 시각·배속·자산 수)를 공유하고, 수동 tick 트리거를 받으면 대기를 건너뜀 |
-| `daemon_state.py` | `daemon.py` ↔ `server.py` 간 스레드 안전 공유 상태(`speed`, `interval_minutes`, `current_time`, `status` 등) 보관 |
-| `server.py` | FastAPI 제어 서버. `/api/status`(상태 조회), `/api/cycle/next`(수동 tick), `/api/config`(런타임 설정 변경) 3개 엔드포인트 제공, `daemon.py`와 별도 스레드로 동시 기동 |
-| `run.py` | `server.py`를 별도 스레드로 먼저 기동한 뒤, 메인 스레드에서 `daemon.run_forever()` 호출. SIGINT/SIGTERM 처리 |
+| `daemon.py` | 전체 자산을 라인 단위로 묶고, 공유 타임라인으로 매 tick마다 전 라인을 병렬 실행. 현재 구현은 고정 interval/speed와 종료 signal을 사용한다. |
+| `daemon_state.py` | **후속 계획(현재 파일 없음)** — 제어 API 도입 시 스레드 안전 공유 상태 보관 |
+| `server.py` | **후속 계획(현재 파일 없음)** — `/api/status`, `/api/cycle/next`, `/api/config` 제어 API 설계 |
+| `run.py` | 현재는 `daemon.run_forever()`를 호출하는 CLI 진입점이다. 제어 API 동시 기동은 후속 계획이다. |
 
 ## 데이터 흐름 (Tick 단위 처리 절차)
 

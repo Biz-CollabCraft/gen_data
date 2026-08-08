@@ -4,8 +4,8 @@
 
 import json
 import struct
-from gen_data.protocol.base_protocol import ProtocolAdapter
-from gen_data.protocol.raw_envelope import PROTOCOL_OPCUA_BINARY
+from .base_protocol import ProtocolAdapter
+from .raw_envelope import PROTOCOL_OPCUA_BINARY
 
 
 # ──────────────────────────────────────────────

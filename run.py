@@ -3,7 +3,7 @@
 # ──────────────────────────────────────────────
 
 import argparse
-from gen_data.daemon import run_forever
+from daemon import run_forever
 
 
 # ──────────────────────────────────────────────
