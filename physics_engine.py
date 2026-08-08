@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 # v3.1 스크립트 경로 주입 (물리 계산 로직 재사용)
-V3_1_SCRIPTS = Path(r"C:\kosa\project\final\predictive_maintenance_canonical_v3.1\scripts")
+V3_1_SCRIPTS = Path(r"..\predictive_maintenance_canonical_v3.1\scripts")
 if str(V3_1_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(V3_1_SCRIPTS))
 
