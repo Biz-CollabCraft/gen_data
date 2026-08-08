@@ -1,0 +1,51 @@
+{
+  "artifact_id": "RESULT#CMP-S03-L03-01#2026-08-29T23:00:00+09:00",
+  "artifact_type": "predictive_maintenance_result",
+  "schema_version": "result-artifact-v1.0",
+  "asset_id": "CMP-S03-L03-01",
+  "asset_type": "compressor",
+  "observed_at": "2026-08-29T23:00:00+09:00",
+  "prediction_horizon_hours": 24,
+  "prediction_task": "binary_failure_within_horizon",
+  "failure_probability": 0.824661,
+  "predicted_failure_type": "failure_risk",
+  "status_grade": "critical",
+  "confidence": 0.649322,
+  "top_factors": [
+    {
+      "rank": 1,
+      "feature": "rotation_raw_6h_mean",
+      "feature_value": -0.983057,
+      "signed_contribution": 1.065268,
+      "direction": "risk_up",
+      "explanation_method": "linear_logit_contribution"
+    },
+    {
+      "rank": 2,
+      "feature": "rotation_raw_6h_abs_mean",
+      "feature_value": 1.051324,
+      "signed_contribution": 0.356365,
+      "direction": "risk_up",
+      "explanation_method": "linear_logit_contribution"
+    },
+    {
+      "rank": 3,
+      "feature": "rotation_raw_6h_std",
+      "feature_value": 0.747285,
+      "signed_contribution": 0.337334,
+      "direction": "risk_up",
+      "explanation_method": "linear_logit_contribution"
+    }
+  ],
+  "recommended_action": {
+    "action": "immediate_inspection_and_stop_review",
+    "priority": "urgent"
+  },
+  "provenance": {
+    "dataset_version": "canonical-ai4i-physics-v3.1",
+    "model_version": "independent-logreg-v3.1",
+    "prediction_id": "CMP-S03-L03-01#2026-08-29T23:00:00+09:00",
+    "source_type": "derived_result_artifact",
+    "canonical_source_mutated": false
+  }
+}

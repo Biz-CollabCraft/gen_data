@@ -1,0 +1,17 @@
+{
+  "case_id": "CASE-RR-017",
+  "data_semantics": "synthetic_agent_evaluation_observations",
+  "canonical_source": false,
+  "hidden_truth_available_to_agent": false,
+  "target_asset_id": "CNC-S03-L02-01",
+  "site_id": "S03",
+  "investigation_window_start": "2026-08-05T23:00:00+09:00",
+  "investigation_window_end": "2026-08-08T23:00:00+09:00",
+  "question": "Review the target CNC anomaly and determine whether an upstream relation is supported. Reject unsupported upstream claims and identify local evidence when appropriate.",
+  "available_files": [
+    "asset_master.csv",
+    "asset_relation.csv",
+    "compressor_sensor_observation.csv",
+    "cnc_sensor_observation.csv"
+  ]
+}

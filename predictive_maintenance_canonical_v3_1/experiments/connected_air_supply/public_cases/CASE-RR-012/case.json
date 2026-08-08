@@ -1,0 +1,17 @@
+{
+  "case_id": "CASE-RR-012",
+  "data_semantics": "synthetic_agent_evaluation_observations",
+  "canonical_source": false,
+  "hidden_truth_available_to_agent": false,
+  "target_asset_id": "CNC-S02-L04-04",
+  "site_id": "S02",
+  "investigation_window_start": "2026-08-17T23:00:00+09:00",
+  "investigation_window_end": "2026-08-20T23:00:00+09:00",
+  "question": "Review the target CNC anomaly and identify plausible upstream or local cause candidates. Use temporal evidence and topology; do not claim causality as confirmed from observation alone.",
+  "available_files": [
+    "asset_master.csv",
+    "asset_relation.csv",
+    "compressor_sensor_observation.csv",
+    "cnc_sensor_observation.csv"
+  ]
+}

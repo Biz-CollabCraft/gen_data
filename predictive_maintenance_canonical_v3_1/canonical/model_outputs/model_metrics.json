@@ -1,0 +1,158 @@
+{
+  "compressor": {
+    "rows": 13641,
+    "positive_rows": 480,
+    "prevalence": 0.035188,
+    "leave_one_site_out_roc_auc": 0.734353,
+    "average_precision": 0.222111,
+    "top_5pct_precision": 0.199413,
+    "top_5pct_recall": 0.283333,
+    "folds": {
+      "S01": {
+        "rows": 3412,
+        "positive_rows": 120,
+        "roc_auc": 0.79961,
+        "average_precision": 0.371399
+      },
+      "S02": {
+        "rows": 3421,
+        "positive_rows": 120,
+        "roc_auc": 0.621223,
+        "average_precision": 0.144332
+      },
+      "S03": {
+        "rows": 3407,
+        "positive_rows": 120,
+        "roc_auc": 0.798745,
+        "average_precision": 0.289943
+      },
+      "S04": {
+        "rows": 3401,
+        "positive_rows": 120,
+        "roc_auc": 0.747666,
+        "average_precision": 0.149539
+      }
+    },
+    "feature_count": 40,
+    "features": [
+      "voltage_raw_current",
+      "voltage_raw_6h_mean",
+      "voltage_raw_6h_std",
+      "voltage_raw_6h_max_abs",
+      "voltage_raw_6h_change",
+      "voltage_raw_1h_change",
+      "voltage_raw_abs_current",
+      "voltage_raw_6h_abs_mean",
+      "rotation_raw_current",
+      "rotation_raw_6h_mean",
+      "rotation_raw_6h_std",
+      "rotation_raw_6h_max_abs",
+      "rotation_raw_6h_change",
+      "rotation_raw_1h_change",
+      "rotation_raw_abs_current",
+      "rotation_raw_6h_abs_mean",
+      "pressure_raw_current",
+      "pressure_raw_6h_mean",
+      "pressure_raw_6h_std",
+      "pressure_raw_6h_max_abs",
+      "pressure_raw_6h_change",
+      "pressure_raw_1h_change",
+      "pressure_raw_abs_current",
+      "pressure_raw_6h_abs_mean",
+      "vibration_raw_current",
+      "vibration_raw_6h_mean",
+      "vibration_raw_6h_std",
+      "vibration_raw_6h_max_abs",
+      "vibration_raw_6h_change",
+      "vibration_raw_1h_change",
+      "vibration_raw_abs_current",
+      "vibration_raw_6h_abs_mean",
+      "relative_vibration_z_current",
+      "relative_vibration_z_6h_mean",
+      "relative_vibration_z_6h_std",
+      "relative_vibration_z_6h_max_abs",
+      "relative_vibration_z_6h_change",
+      "relative_vibration_z_1h_change",
+      "relative_vibration_z_abs_current",
+      "relative_vibration_z_6h_abs_mean"
+    ]
+  },
+  "cnc": {
+    "rows": 54567,
+    "positive_rows": 1312,
+    "prevalence": 0.024044,
+    "leave_one_site_out_roc_auc": 0.813453,
+    "average_precision": 0.52958,
+    "top_5pct_precision": 0.287757,
+    "top_5pct_recall": 0.598323,
+    "folds": {
+      "S01": {
+        "rows": 13640,
+        "positive_rows": 288,
+        "roc_auc": 0.840377,
+        "average_precision": 0.577677
+      },
+      "S02": {
+        "rows": 13628,
+        "positive_rows": 405,
+        "roc_auc": 0.782663,
+        "average_precision": 0.495328
+      },
+      "S03": {
+        "rows": 13642,
+        "positive_rows": 309,
+        "roc_auc": 0.808786,
+        "average_precision": 0.540967
+      },
+      "S04": {
+        "rows": 13657,
+        "positive_rows": 310,
+        "roc_auc": 0.854628,
+        "average_precision": 0.537935
+      }
+    },
+    "feature_count": 40,
+    "features": [
+      "air_temperature_k_current",
+      "air_temperature_k_6h_mean",
+      "air_temperature_k_6h_std",
+      "air_temperature_k_6h_max_abs",
+      "air_temperature_k_6h_change",
+      "air_temperature_k_1h_change",
+      "air_temperature_k_abs_current",
+      "air_temperature_k_6h_abs_mean",
+      "process_temperature_k_current",
+      "process_temperature_k_6h_mean",
+      "process_temperature_k_6h_std",
+      "process_temperature_k_6h_max_abs",
+      "process_temperature_k_6h_change",
+      "process_temperature_k_1h_change",
+      "process_temperature_k_abs_current",
+      "process_temperature_k_6h_abs_mean",
+      "rotational_speed_rpm_current",
+      "rotational_speed_rpm_6h_mean",
+      "rotational_speed_rpm_6h_std",
+      "rotational_speed_rpm_6h_max_abs",
+      "rotational_speed_rpm_6h_change",
+      "rotational_speed_rpm_1h_change",
+      "rotational_speed_rpm_abs_current",
+      "rotational_speed_rpm_6h_abs_mean",
+      "torque_nm_current",
+      "torque_nm_6h_mean",
+      "torque_nm_6h_std",
+      "torque_nm_6h_max_abs",
+      "torque_nm_6h_change",
+      "torque_nm_1h_change",
+      "torque_nm_abs_current",
+      "torque_nm_6h_abs_mean",
+      "tool_wear_min_current",
+      "tool_wear_min_6h_mean",
+      "tool_wear_min_6h_std",
+      "tool_wear_min_6h_max_abs",
+      "tool_wear_min_6h_change",
+      "tool_wear_min_1h_change",
+      "tool_wear_min_abs_current",
+      "tool_wear_min_6h_abs_mean"
+    ]
+  }
+}

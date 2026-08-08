@@ -1,0 +1,63 @@
+{
+  "dataset_version": "canonical-ai4i-physics-v3.1",
+  "created_at": "2026-08-04T18:07:27+09:00",
+  "start_at": "2026-08-01T00:00:00+09:00",
+  "end_at": "2026-08-31T00:00:00+09:00",
+  "days": 30,
+  "seed": 42,
+  "rate_profile": "balanced_demo",
+  "observation_interval_minutes": 10,
+  "asset_counts": {
+    "compressor": 20,
+    "cnc": 80
+  },
+  "source_contract": {
+    "compressor_and_cnc_independent": true,
+    "topology_relation_is_not_causal_truth": true,
+    "upstream_features_in_source": false,
+    "synthetic_effect_columns_in_source": false,
+    "prediction_outputs_in_source": false,
+    "evaluation_truth_separate": true,
+    "cnc_ai4i_physical_relations": true,
+    "failure_modes_satisfy_sensor_conditions": true,
+    "asset_variability_policy": "small_offsets_plus_time_varying_physical_process"
+  },
+  "ai4i_contract": {
+    "power_formula": "torque_nm * rotational_speed_rpm * 2*pi/60",
+    "power_failure_watts": {
+      "below": 3500.0,
+      "above": 9000.0
+    },
+    "heat_dissipation_failure": {
+      "temperature_gap_below_k": 8.6,
+      "rpm_below": 1380.0
+    },
+    "tool_wear_failure_minutes": {
+      "min": 200.0,
+      "max": 240.0
+    },
+    "overstrain_thresholds": {
+      "L": 11000.0,
+      "M": 12000.0,
+      "H": 13000.0
+    }
+  },
+  "maintenance_contract": {
+    "tool_wear_reset_state": "maintenance",
+    "tool_wear_reset_timestamp": "maintenance_event.started_at",
+    "running_tool_wear_decrease_tolerance_minutes": 1.0
+  },
+  "canonical_outputs": {
+    "asset_master.csv": "46d28fb8af9a9737473b71325a54115031d42b92fd2fc1cc8d890ce9ea726192",
+    "asset_relation.csv": "4602eb35b30f33da0df197d320a9779f91cd40fcb5dc98d194826c6d92945613",
+    "compressor_sensor_observation.csv": "138e75c0f72104db1713c478d0f14140edacc8d55bc473a69e0256531b7bc08f",
+    "cnc_sensor_observation.csv": "ebac657f790ecdd6d9b61cb08aa35997c7361be6823bb649b19bcf97583c6462",
+    "cnc_production_cycle.csv": "565dae765a4f2566910a51ca22ed4970687bd269ae6e1d1cb52e51c4446361e3",
+    "maintenance_event.csv": "479dcb18109cfd3c05ecfcaa990ffd9103843037f1f3498f28f39eeee6fc18b8"
+  },
+  "evaluation_truth_outputs": {
+    "failure_schedule.csv": "f52e7028d5f430535143b13bc085ee0c9bf0567f755a04a1c41a55d915acbe92",
+    "compressor_failure_truth.csv": "ef93ba7810c20b95ad50c4c6f83aed197e53e4a56e8c7a1230c80d47dca1f35b",
+    "cnc_failure_truth.csv": "a0a2e7136ee0aa30598aadb11ffffefd59a4b957b0e1d2ba62454a3d0436aeeb"
+  }
+}
