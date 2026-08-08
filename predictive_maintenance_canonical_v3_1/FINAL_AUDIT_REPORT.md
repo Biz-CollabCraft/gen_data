@@ -106,11 +106,11 @@ predicted class, status grade, Top-3 factors, recommended action, provenance를
 
 ## 배포 검증
 
-배포본은 영문 루트 `predictive_maintenance_canonical_v3.1/`에서 생성했다.
+배포본은 영문 루트 `predictive_maintenance_canonical_v3_1/`에서 생성했다.
 
 ```text
-dist/predictive_maintenance_canonical_v3.1.zip
-dist/predictive_maintenance_canonical_v3.1.zip.sha256
+dist/predictive_maintenance_canonical_v3_1.zip
+dist/predictive_maintenance_canonical_v3_1.zip.sha256
 ```
 
 - ZIP CRC: PASS

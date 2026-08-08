@@ -100,8 +100,8 @@ accuracy와 해당 case score가 모두 0으로 처리됐다.
 내부 release artifact다.
 
 ```text
-dist/predictive_maintenance_canonical_v3.1.zip
-dist/predictive_maintenance_canonical_v3.1.zip.sha256
+dist/predictive_maintenance_canonical_v3_1.zip
+dist/predictive_maintenance_canonical_v3_1.zip.sha256
 ```
 
 Release builder는 영문 root, ZIP CRC, 실제 압축 해제, 압축 해제본 package

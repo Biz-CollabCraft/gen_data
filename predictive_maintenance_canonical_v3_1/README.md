@@ -5,7 +5,7 @@ AI4I 2020의 핵심 물리 관계를 반영한 압축기·CNC 합성 데이터�
 제공한다.
 
 신규 제품 연동과 팀 공유의 기준 경로는
-`predictive_maintenance_canonical_v3.1/`이다. 기존 이름이 V3인 작업 폴더를
+`predictive_maintenance_canonical_v3_1/`이다. 기존 이름이 V3인 작업 폴더를
 V3.0 기준본으로 간주하거나 신규 ingestion 입력으로 사용하지 않는다.
 
 ```text
@@ -94,7 +94,7 @@ reset 없이 끝난 tool replacement        0
 ## 폴더 구조
 
 ```text
-predictive_maintenance_canonical_v3.1/
+predictive_maintenance_canonical_v3_1/
 ├── canonical/
 │   ├── dataset/
 │   ├── evaluation_truth/
@@ -124,7 +124,7 @@ predictive_maintenance_canonical_v3.1/
 Python 3.11 이상을 권장한다.
 
 ```bash
-cd predictive_maintenance_canonical_v3.1
+cd predictive_maintenance_canonical_v3_1
 python3 -m venv .venv
 .venv/bin/pip install -r requirements-lock.txt
 ```
@@ -227,7 +227,8 @@ GET /result-artifacts
 GET /experiments
 ```
 
-기본 설정에서는 evaluation truth와 experiment hidden truth를 노출하지 않는다.
+Dataset API는 evaluation truth와 experiment hidden truth를 읽거나 노출하는
+endpoint 자체를 제공하지 않는다. 두 truth 영역은 평가·검증 코드에서만 사용한다.
 
 ## Time Machine Replay Server
 
@@ -333,8 +334,8 @@ Canonical-only 재현성:
 ```
 
 ```text
-dist/predictive_maintenance_canonical_v3.1.zip
-dist/predictive_maintenance_canonical_v3.1.zip.sha256
+dist/predictive_maintenance_canonical_v3_1.zip
+dist/predictive_maintenance_canonical_v3_1.zip.sha256
 ```
 
 배포 스크립트는 macOS metadata·venv·cache를 제외하고, ZIP CRC 검사와 실제

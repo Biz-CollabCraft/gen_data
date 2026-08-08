@@ -35,7 +35,7 @@ def safe_page_args() -> tuple[int, int]:
     return offset, limit
 
 
-def create_app(root: Path, allow_truth: bool = False) -> Flask:
+def create_app(root: Path) -> Flask:
     app = Flask(__name__)
     dataset_dir = root / "canonical" / "dataset"
     model_dir = root / "canonical" / "model_outputs"
@@ -50,7 +50,6 @@ def create_app(root: Path, allow_truth: bool = False) -> Flask:
                 "model_outputs": (model_dir / "model_contract.json").exists(),
                 "result_artifacts": (model_dir / "result_artifact.jsonl").exists(),
                 "agent_experiments": (experiment_root / "public_case_index.csv").exists(),
-                "truth_api_enabled": allow_truth,
             }
         )
 
@@ -175,23 +174,6 @@ def create_app(root: Path, allow_truth: bool = False) -> Flask:
         offset, limit = safe_page_args()
         return jsonify(read_csv_page(experiment_root / "public_cases" / case_id / filename, offset, limit))
 
-    if allow_truth:
-
-        @app.get("/evaluation/truth/<name>")
-        def evaluation_truth(name: str):
-            allowed = {
-                "compressor": "compressor_failure_truth.csv",
-                "cnc": "cnc_failure_truth.csv",
-                "schedule": "failure_schedule.csv",
-            }
-            filename = allowed.get(name)
-            if filename is None:
-                abort(404)
-            offset, limit = safe_page_args()
-            return jsonify(
-                read_csv_page(root / "canonical" / "evaluation_truth" / filename, offset, limit)
-            )
-
     return app
 
 
@@ -200,11 +182,8 @@ def main() -> None:
     parser.add_argument("--root", default=str(Path(__file__).resolve().parents[1]))
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8000)
-    parser.add_argument("--allow-evaluation-truth", action="store_true")
     args = parser.parse_args()
-    create_app(Path(args.root), args.allow_evaluation_truth).run(
-        host=args.host, port=args.port, debug=False
-    )
+    create_app(Path(args.root)).run(host=args.host, port=args.port, debug=False)
 
 
 if __name__ == "__main__":
