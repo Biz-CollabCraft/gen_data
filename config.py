@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DEFAULT_OUTPUT_DIR = r"C:\kosa\project\final\gen_data\output"
+DEFAULT_OUTPUT_DIR = r"\output"
 
 GEN_DATA_OUTPUT_DIR = os.environ.get("GEN_DATA_OUTPUT_DIR", DEFAULT_OUTPUT_DIR)
 if not GEN_DATA_OUTPUT_DIR:
