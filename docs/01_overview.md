@@ -35,12 +35,16 @@ Canonical V3.1 물리 함수 재사용            가공: Extraction Agent
 → 실시간 .raw 캡처 생성                     → Ontology Mapping Agent
 → 라인별 병렬 저장          ──파일시스템──▶      → Topology Construction Agent
                                               → Feature Builder (.npy)
-                            (오직 이 경로로만 연결,
-                             repo 간 코드 import 없음,
-                             augmenter 등 중간 가공 모듈 없음)
-                                        사용: Model Registry (학습/예측)
+                            (오직 이 경로로만 연결,                → Model Training
+                             repo 간 코드 import 없음,                → Versioned Model Artifact
+                             augmenter 등 중간 가공 모듈 없음)          (systems/generator 책임, 여기까지)
+                                        사용: Runtime Inference
+                                              → Product Result Artifact / Evidence
+                                              (systems/backend/diagnosis 책임)
                                               → Dashboard (시각화)
 ```
+
+`systems/generator`는 Model Artifact(학습된 모델)를 만드는 것까지만 담당하며, 그 모델로 실시간 추론을 수행해 실제 서비스가 쓰는 Result Artifact/Evidence를 만드는 것은 `systems/backend/diagnosis`의 책임이다. 이 두 producer를 하나로 뭉뚱그려 표현하지 않는다.
 
 gen_data는 데이터를 **만드는 쪽**, ontology_dashboard는 그 데이터를 **읽어서 의미를 해석하고(가공) 예측·시각화에 쓰는 쪽(사용)**으로 역할이 명확히 나뉜다. 화살표는 한쪽 방향(gen_data → ontology_dashboard)으로만 흐르며, ontology_dashboard가 gen_data로 값을 되돌려 쓰거나 gen_data의 동작에 개입하는 경로는 없다. 초기 검토 단계에 있었던 별도 증강(augmentation) 모듈은 최종 설계에서 제외되었으며, gen_data가 만든 데이터를 ontology_dashboard가 직접 읽어 가공하는 2단 구조로 확정한다.
 
