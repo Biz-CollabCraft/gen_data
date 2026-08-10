@@ -378,7 +378,7 @@ pip-selfcheck.json
 
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,pycharm,python,cuda,react,nextjs,venv
 
-# CodeMap Data & Environment
+# Data & Environment
 .env
 data/sensor/*
 !data/sensor/.gitkeep
