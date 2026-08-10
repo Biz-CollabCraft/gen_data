@@ -1,0 +1,49 @@
+{
+  "claim_file": "agent/agent_claims.example.jsonl",
+  "claims": 2,
+  "valid_cases": 2,
+  "mean_score": 1.0,
+  "upstream_accuracy": 1.0,
+  "positive_upstream_accuracy": 1.0,
+  "negative_rejection_accuracy": 1.0,
+  "false_upstream_claim_rate": 0.0,
+  "relation_accuracy": 1.0,
+  "calibration_rate": 1.0,
+  "temporal_evidence_rate": 1.0,
+  "maintenance_evidence_claims": 1,
+  "maintenance_evidence_accuracy": 1.0,
+  "positive_cases": 1,
+  "negative_cases": 1,
+  "results": [
+    {
+      "case_id": "CASE-RR-001",
+      "valid_case": true,
+      "case_type": "positive_upstream_relation",
+      "upstream_hit": true,
+      "relation_hit": true,
+      "evidence_coverage": true,
+      "upstream_temporal_evidence": true,
+      "target_temporal_evidence": true,
+      "maintenance_evidence_count": 0,
+      "maintenance_evidence_valid": true,
+      "causal_language_calibrated": true,
+      "false_upstream_claim": false,
+      "score": 1.0
+    },
+    {
+      "case_id": "CASE-RR-017",
+      "valid_case": true,
+      "case_type": "negative_local_only",
+      "upstream_hit": true,
+      "relation_hit": true,
+      "evidence_coverage": true,
+      "upstream_temporal_evidence": true,
+      "target_temporal_evidence": true,
+      "maintenance_evidence_count": 1,
+      "maintenance_evidence_valid": true,
+      "causal_language_calibrated": true,
+      "false_upstream_claim": false,
+      "score": 1.0
+    }
+  ]
+}

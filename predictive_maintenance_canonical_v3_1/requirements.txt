@@ -1,0 +1,4 @@
+flask>=3.0,<4
+numpy>=2.0,<3
+pandas>=2.2,<4
+scikit-learn>=1.5,<2

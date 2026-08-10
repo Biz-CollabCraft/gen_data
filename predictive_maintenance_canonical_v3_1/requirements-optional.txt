@@ -1,0 +1,3 @@
+# Optional. prediction_pipeline.py falls back to exact standardized linear-logit
+# contributions when SHAP is not installed or is unavailable for the Python version.
+shap>=0.46

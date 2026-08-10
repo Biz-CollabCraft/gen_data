@@ -1,0 +1,69 @@
+{
+  "artifact_role": "reference_regression_fixture",
+  "operational_ownership": {
+    "model_artifact_producer": "Biz-CollabCraft/ontology_dashboard/systems/generator",
+    "runtime_result_producer": "Biz-CollabCraft/ontology_dashboard/systems/backend/diagnosis"
+  },
+  "model_version": "independent-logreg-v3.1",
+  "dataset_version": "canonical-ai4i-physics-v3.1",
+  "dataset_manifest_sha256": "0480d562648d84052e0c6fbd6294dc3a06dd19e7d3a4c1cabb7d0da122efeaf1",
+  "canonical_input_sha256": {
+    "asset_master.csv": "46d28fb8af9a9737473b71325a54115031d42b92fd2fc1cc8d890ce9ea726192",
+    "asset_relation.csv": "4602eb35b30f33da0df197d320a9779f91cd40fcb5dc98d194826c6d92945613",
+    "compressor_sensor_observation.csv": "138e75c0f72104db1713c478d0f14140edacc8d55bc473a69e0256531b7bc08f",
+    "cnc_sensor_observation.csv": "ebac657f790ecdd6d9b61cb08aa35997c7361be6823bb649b19bcf97583c6462",
+    "cnc_production_cycle.csv": "565dae765a4f2566910a51ca22ed4970687bd269ae6e1d1cb52e51c4446361e3",
+    "maintenance_event.csv": "479dcb18109cfd3c05ecfcaa990ffd9103843037f1f3498f28f39eeee6fc18b8"
+  },
+  "evaluation_truth_input_sha256": {
+    "failure_schedule.csv": "f52e7028d5f430535143b13bc085ee0c9bf0567f755a04a1c41a55d915acbe92",
+    "compressor_failure_truth.csv": "ef93ba7810c20b95ad50c4c6f83aed197e53e4a56e8c7a1230c80d47dca1f35b",
+    "cnc_failure_truth.csv": "a0a2e7136ee0aa30598aadb11ffffefd59a4b957b0e1d2ba62454a3d0436aeeb"
+  },
+  "prediction_horizon_hours": 24,
+  "compressor_model_uses": [
+    "voltage_raw",
+    "rotation_raw",
+    "pressure_raw",
+    "vibration_raw",
+    "relative_vibration_z"
+  ],
+  "cnc_model_uses": [
+    "air_temperature_k",
+    "process_temperature_k",
+    "rotational_speed_rpm",
+    "torque_nm",
+    "tool_wear_min"
+  ],
+  "asset_relation_used_as_feature": false,
+  "upstream_feature_used": false,
+  "optional_experiment_used_for_training": false,
+  "truth_usage": "label creation and evaluation only",
+  "right_censoring_policy": "exclude final prediction horizon",
+  "maintenance_rows_excluded": true,
+  "explanation_methods": {
+    "compressor": "linear_logit_contribution",
+    "cnc": "linear_logit_contribution"
+  },
+  "replay_timeline": {
+    "cadence": "hourly after six-hour feature warmup",
+    "semantics": "derived leave-one-site-out out-of-fold output for deterministic replay",
+    "uses_canonical_features_only": true,
+    "in_sample_for_site": false,
+    "row_count": 68208
+  },
+  "result_artifact": {
+    "schema_version": "result-artifact-v1.0",
+    "row_count": 100,
+    "prediction_task": "binary_failure_within_horizon",
+    "predicted_failure_type_semantics": "generic binary risk class; not a multiclass failure-mode classifier"
+  },
+  "outputs_are_not_source_data": true,
+  "output_sha256": {
+    "prediction_snapshot.jsonl": "e778a3af6e4632d9ac55b6bf0dfc04e1813e25b3c3a57fc66c2ff67b29a4a0b0",
+    "prediction_factor.jsonl": "b611500188b8b2df998fdceb5cf5280743ff9deaa56dab9a15470c45d37b008f",
+    "prediction_timeline.jsonl": "808eefa66dfcf70c6b5f234a57cc50e0d0b0fbfd661233532a82f2c23b67743f",
+    "result_artifact.jsonl": "af5c8a1bc8be83152e4b08451c9052a409c1c545c78bcb88dede41c6e2d9a64d",
+    "model_metrics.json": "19d80b4a5e603337adfd51f5c6c5b908424151a2436ca7d2b433fe29ebea0bdc"
+  }
+}

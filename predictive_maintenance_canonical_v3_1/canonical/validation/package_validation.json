@@ -1,0 +1,1290 @@
+{
+  "valid": true,
+  "validation_scope": "source_plus_reference_fixtures",
+  "model_outputs_role": "reference_regression_fixture",
+  "canonical_source_separation": "pass",
+  "canonical_checksum_integrity": "pass",
+  "evaluation_truth_checksum_integrity": "pass",
+  "truth_separation": "pass",
+  "topology_integrity": "pass",
+  "observation_key_integrity": "pass",
+  "failure_maintenance_coverage": "pass",
+  "tool_wear_continuity": {
+    "tolerance_minutes": 1.0,
+    "reset_value_max_minutes": 5.0,
+    "running_reset_count": 0,
+    "maximum_allowed": 0,
+    "tool_replacement_event_count": 731,
+    "aligned_reset_transition_count": 731,
+    "reset_without_matching_maintenance_count": 0,
+    "replacement_without_reset_count": 0,
+    "running_reset_examples": [],
+    "reset_alignment_examples": [],
+    "pass": true
+  },
+  "experiment_isolation": "pass",
+  "experiment_checksum_integrity": "pass",
+  "public_experiment_schema_matches_canonical": "pass",
+  "hidden_truth_not_public": "pass",
+  "negative_control_benchmark": "pass",
+  "agent_positive_negative_evaluator": "pass",
+  "model_contract": "pass",
+  "model_dataset_binding": "pass",
+  "row_counts": {
+    "assets": 100,
+    "relations": 80,
+    "compressor_observations": 86400,
+    "cnc_observations": 345600,
+    "production_cycles": 170875,
+    "maintenance_events": 790,
+    "failure_recovery_events": 76,
+    "compressor_failure_truth": 20,
+    "cnc_failure_truth": 56,
+    "public_agent_cases": 20,
+    "positive_upstream_cases": 16,
+    "negative_local_only_cases": 4,
+    "prediction_timeline_rows": 68208,
+    "result_artifact_rows": 100
+  },
+  "experiment_observability": {
+    "aggregate_upstream_pressure_difference_in_differences": -8.533756,
+    "aggregate_target_torque_difference_in_differences": 3.640548,
+    "pressure_direction_expected": "negative",
+    "torque_direction_expected": "positive",
+    "pressure_direction_pass": true,
+    "torque_direction_pass": true,
+    "pressure_direction_case_pass_rate": 1.0,
+    "torque_direction_case_pass_rate": 1.0,
+    "causal_claim_allowed": "no",
+    "negative_local_torque_delta_mean": 2.702674
+  },
+  "ai4i_physics": {
+    "air_process_correlation": {
+      "value": 0.919768,
+      "minimum": 0.8,
+      "pass": true
+    },
+    "rpm_torque_correlation": {
+      "value": -0.845823,
+      "maximum": -0.6,
+      "pass": true
+    },
+    "process_temperature_ordering": {
+      "process_below_air_rows": 0,
+      "fraction": 0.0,
+      "maximum_fraction": 0.0,
+      "pass": true
+    },
+    "sensor_distribution": {
+      "air_temperature_k": {
+        "mean": 300.012708,
+        "std": 1.95331,
+        "target_std": 2.0,
+        "allowed_min": 1.6,
+        "allowed_max": 2.4,
+        "pass": true
+      },
+      "process_temperature_k": {
+        "mean": 310.032184,
+        "std": 1.512621,
+        "target_std": 1.5,
+        "allowed_min": 1.2,
+        "allowed_max": 1.9,
+        "pass": true
+      },
+      "rotational_speed_rpm": {
+        "mean": 1581.05952,
+        "std": 185.895344,
+        "target_std": 179.0,
+        "allowed_min": 145.0,
+        "allowed_max": 220.0,
+        "pass": true
+      },
+      "torque_nm": {
+        "mean": 40.098921,
+        "std": 10.563547,
+        "target_std": 9.97,
+        "allowed_min": 8.5,
+        "allowed_max": 11.5,
+        "pass": true
+      }
+    },
+    "failure_mode_conditions": {
+      "PWF": {
+        "events": 14,
+        "condition_passes": 14,
+        "condition_pass_rate": 1.0,
+        "other_failure_events_matching_condition": 2,
+        "pass": true
+      },
+      "HDF": {
+        "events": 21,
+        "condition_passes": 21,
+        "condition_pass_rate": 1.0,
+        "other_failure_events_matching_condition": 0,
+        "pass": true
+      },
+      "OSF": {
+        "events": 11,
+        "condition_passes": 11,
+        "condition_pass_rate": 1.0,
+        "other_failure_events_matching_condition": 1,
+        "pass": true
+      },
+      "TWF": {
+        "events": 6,
+        "condition_passes": 6,
+        "condition_pass_rate": 1.0,
+        "other_failure_events_matching_condition": 7,
+        "pass": true
+      },
+      "RNF": {
+        "events": 4,
+        "condition_passes": 4,
+        "condition_pass_rate": 1.0,
+        "other_failure_events_matching_condition": 0,
+        "pass": true
+      }
+    },
+    "event_condition_details": [
+      {
+        "event_id": "EVT-1072e44d1c12a46b-001",
+        "asset_id": "CNC-S01-L01-04",
+        "component": "PWF",
+        "condition_variant": "low_power",
+        "condition_pass": true,
+        "matched_conditions": [
+          "PWF",
+          "RNF"
+        ],
+        "power_w": 3199.999909,
+        "temperature_gap_k": 10.9805,
+        "tool_wear_min": 104.0231,
+        "torque_nm": 34.0,
+        "rotational_speed_rpm": 898.7573,
+        "product_type": "M"
+      },
+      {
+        "event_id": "EVT-2d195d54b96628f1-001",
+        "asset_id": "CNC-S01-L02-02",
+        "component": "HDF",
+        "condition_variant": "hdf",
+        "condition_pass": true,
+        "matched_conditions": [
+          "PWF",
+          "HDF",
+          "RNF"
+        ],
+        "power_w": 3194.378112,
+        "temperature_gap_k": 7.7,
+        "tool_wear_min": 57.274,
+        "torque_nm": 23.8313,
+        "rotational_speed_rpm": 1280.0,
+        "product_type": "H"
+      },
+      {
+        "event_id": "EVT-0275d75fcb49cd7b-001",
+        "asset_id": "CNC-S01-L02-04",
+        "component": "HDF",
+        "condition_variant": "hdf",
+        "condition_pass": true,
+        "matched_conditions": [
+          "HDF",
+          "RNF"
+        ],
+        "power_w": 4949.957055,
+        "temperature_gap_k": 7.7,
+        "tool_wear_min": 119.9031,
+        "torque_nm": 36.9286,
+        "rotational_speed_rpm": 1280.0,
+        "product_type": "H"
+      },
+      {
+        "event_id": "EVT-e603231ab4bd2fcb-001",
+        "asset_id": "CNC-S01-L03-01",
+        "component": "HDF",
+        "condition_variant": "hdf",
+        "condition_pass": true,
+        "matched_conditions": [
+          "HDF",
+          "RNF"
+        ],
+        "power_w": 4978.306787,
+        "temperature_gap_k": 7.7,
+        "tool_wear_min": 24.6531,
+        "torque_nm": 37.1401,
+        "rotational_speed_rpm": 1280.0,
+        "product_type": "L"
+      },
+      {
+        "event_id": "EVT-5ffec92f9e2d6dd1-001",
+        "asset_id": "CNC-S01-L03-03",
+        "component": "HDF",
+        "condition_variant": "hdf",
+        "condition_pass": true,
+        "matched_conditions": [
+          "HDF",
+          "RNF"
+        ],
+        "power_w": 6489.260381,
+        "temperature_gap_k": 7.7,
+        "tool_wear_min": 17.9865,
+        "torque_nm": 48.4124,
+        "rotational_speed_rpm": 1280.0,
+        "product_type": "L"
+      },
+      {
+        "event_id": "EVT-3c8cf76234a90adb-001",
+        "asset_id": "CNC-S01-L04-01",
+        "component": "HDF",
+        "condition_variant": "hdf",
+        "condition_pass": true,
+        "matched_conditions": [
+          "HDF",
+          "RNF"
+        ],
+        "power_w": 3880.763328,
+        "temperature_gap_k": 7.7,
+        "tool_wear_min": 129.7982,
+        "torque_nm": 28.952,
+        "rotational_speed_rpm": 1280.0,
+        "product_type": "M"
+      },
+      {
+        "event_id": "EVT-002d878c3cec7b9d-001",
+        "asset_id": "CNC-S01-L04-02",
+        "component": "PWF",
+        "condition_variant": "high_power",
+        "condition_pass": true,
+        "matched_conditions": [
+          "PWF",
+          "RNF"
+        ],
+        "power_w": 9600.009623,
+        "temperature_gap_k": 10.5122,
+        "tool_wear_min": 101.2655,
+        "torque_nm": 40.5607,
+        "rotational_speed_rpm": 2260.1518,
+        "product_type": "L"
+      },
+      {
+        "event_id": "EVT-397909eb7f2bb218-001",
+        "asset_id": "CNC-S01-L04-03",
+        "component": "PWF",
+        "condition_variant": "high_power",
+        "condition_pass": true,
+        "matched_conditions": [
+          "PWF",
+          "TWF",
+          "RNF"
+        ],
+        "power_w": 9599.997885,
+        "temperature_gap_k": 9.7528,
+        "tool_wear_min": 217.6305,
+        "torque_nm": 36.5272,
+        "rotational_speed_rpm": 2509.725,
+        "product_type": "H"
+      },
+      {
+        "event_id": "EVT-bb9be28a39a13612-001",
+        "asset_id": "CNC-S01-L04-04",
+        "component": "OSF",
+        "condition_variant": "osf",
+        "condition_pass": true,
+        "matched_conditions": [
+          "OSF",
+          "TWF",
+          "RNF"
+        ],
+        "power_w": 6596.714471,
+        "temperature_gap_k": 10.2279,
+        "tool_wear_min": 239.3423,
+        "torque_nm": 57.3333,
+        "rotational_speed_rpm": 1098.7329,
+        "product_type": "M"
+      },
+      {
+        "event_id": "EVT-f58dc3151435138f-001",
+        "asset_id": "CNC-S01-L04-04",
+        "component": "HDF",
+        "condition_variant": "hdf",
+        "condition_pass": true,
+        "matched_conditions": [
+          "HDF",
+          "TWF",
+          "RNF"
+        ],
+        "power_w": 4431.244084,
+        "temperature_gap_k": 7.7,
+        "tool_wear_min": 210.3403,
+        "torque_nm": 33.0588,
+        "rotational_speed_rpm": 1280.0,
+        "product_type": "H"
+      },
+      {
+        "event_id": "EVT-13bc1a3c083ec926-001",
+        "asset_id": "CNC-S01-L05-02",
+        "component": "TWF",
+        "condition_variant": "twf",
+        "condition_pass": true,
+        "matched_conditions": [
+          "TWF",
+          "RNF"
+        ],
+        "power_w": 6450.520941,
+        "temperature_gap_k": 9.2693,
+        "tool_wear_min": 220.0,
+        "torque_nm": 46.0,
+        "rotational_speed_rpm": 1339.0856,
+        "product_type": "M"
+      },
+      {
+        "event_id": "EVT-19aacdd8e25a7389-001",
+        "asset_id": "CNC-S01-L05-03",
+        "component": "TWF",
+        "condition_variant": "twf",
+        "condition_pass": true,
+        "matched_conditions": [
+          "TWF",
+          "RNF"
+        ],
+        "power_w": 6575.255637,
+        "temperature_gap_k": 11.5188,
+        "tool_wear_min": 220.0,
+        "torque_nm": 46.0,
+        "rotational_speed_rpm": 1364.9797,
+        "product_type": "H"
+      },
+      {
+        "event_id": "EVT-d975815f334f3a4d-001",
+        "asset_id": "CNC-S01-L05-03",
+        "component": "HDF",
+        "condition_variant": "hdf",
+        "condition_pass": true,
+        "matched_conditions": [
+          "HDF",
+          "RNF"
+        ],
+        "power_w": 5141.609286,
+        "temperature_gap_k": 7.7,
+        "tool_wear_min": 25.5096,
+        "torque_nm": 38.3584,
+        "rotational_speed_rpm": 1280.0,
+        "product_type": "M"
+      },
+      {
+        "event_id": "EVT-f620214f13b45f78-001",
+        "asset_id": "CNC-S02-L01-01",
+        "component": "HDF",
+        "condition_variant": "hdf",
+        "condition_pass": true,
+        "matched_conditions": [
+          "HDF",
+          "RNF"
+        ],
+        "power_w": 4657.948112,
+        "temperature_gap_k": 7.7,
+        "tool_wear_min": 38.5924,
+        "torque_nm": 34.7501,
+        "rotational_speed_rpm": 1280.0,
+        "product_type": "L"
+      },
+      {
+        "event_id": "EVT-a75191e8f372d6b6-001",
+        "asset_id": "CNC-S02-L01-02",
+        "component": "PWF",
+        "condition_variant": "low_power",
+        "condition_pass": true,
+        "matched_conditions": [
+          "PWF",
+          "RNF"
+        ],
+        "power_w": 3199.999909,
+        "temperature_gap_k": 9.8713,
+        "tool_wear_min": 168.1724,
+        "torque_nm": 34.0,
+        "rotational_speed_rpm": 898.7573,
+        "product_type": "M"
+      },
+      {
+        "event_id": "EVT-ad57fe2086a6b96d-001",
+        "asset_id": "CNC-S02-L02-01",
+        "component": "TWF",
+        "condition_variant": "twf",
+        "condition_pass": true,
+        "matched_conditions": [
+          "TWF",
+          "RNF"
+        ],
+        "power_w": 6447.973654,
+        "temperature_gap_k": 10.732,
+        "tool_wear_min": 220.0,
+        "torque_nm": 46.0,
+        "rotational_speed_rpm": 1338.5568,
+        "product_type": "M"
+      },
+      {
+        "event_id": "EVT-2bdd5559fd617f4d-001",
+        "asset_id": "CNC-S02-L02-02",
+        "component": "TWF",
+        "condition_variant": "twf",
+        "condition_pass": true,
+        "matched_conditions": [
+          "TWF",
+          "RNF"
+        ],
+        "power_w": 6468.788381,
+        "temperature_gap_k": 9.5648,
+        "tool_wear_min": 220.0,
+        "torque_nm": 46.0,
+        "rotational_speed_rpm": 1342.8778,
+        "product_type": "H"
+      },
+      {
+        "event_id": "EVT-44bf7579bba74ac0-001",
+        "asset_id": "CNC-S02-L02-03",
+        "component": "TWF",
+        "condition_variant": "twf",
+        "condition_pass": true,
+        "matched_conditions": [
+          "TWF",
+          "RNF"
+        ],
+        "power_w": 6561.041794,
+        "temperature_gap_k": 11.3724,
+        "tool_wear_min": 220.0,
+        "torque_nm": 46.0,
+        "rotational_speed_rpm": 1362.029,
+        "product_type": "L"
+      },
+      {
+        "event_id": "EVT-c1827d74e765979b-001",
+        "asset_id": "CNC-S02-L02-04",
+        "component": "HDF",
+        "condition_variant": "hdf",
+        "condition_pass": true,
+        "matched_conditions": [
+          "HDF",
+          "RNF"
+        ],
+        "power_w": 4874.773297,
+        "temperature_gap_k": 7.7,
+        "tool_wear_min": 35.796,
+        "torque_nm": 36.3677,
+        "rotational_speed_rpm": 1280.0,
+        "product_type": "L"
+      },
+      {
+        "event_id": "EVT-418b91065f71a774-001",
+        "asset_id": "CNC-S02-L03-01",
+        "component": "OSF",
+        "condition_variant": "osf",
+        "condition_pass": true,
+        "matched_conditions": [
+          "OSF",
+          "TWF",
+          "RNF"
+        ],
+        "power_w": 6399.376417,
+        "temperature_gap_k": 10.0819,
+        "tool_wear_min": 238.5827,
+        "torque_nm": 52.8889,
+        "rotational_speed_rpm": 1155.4323,
+        "product_type": "M"
+      },
+      {
+        "event_id": "EVT-e839d478a2d6c50a-001",
+        "asset_id": "CNC-S02-L03-02",
+        "component": "PWF",
+        "condition_variant": "high_power",
+        "condition_pass": true,
+        "matched_conditions": [
+          "PWF",
+          "RNF"
+        ],
+        "power_w": 9599.994512,
+        "temperature_gap_k": 9.4302,
+        "tool_wear_min": 126.261,
+        "torque_nm": 39.3988,
+        "rotational_speed_rpm": 2326.8017,
+        "product_type": "M"
+      },
+      {
+        "event_id": "EVT-3da5d74c5c658357-001",
+        "asset_id": "CNC-S02-L03-03",
+        "component": "OSF",
+        "condition_variant": "osf",
+        "condition_pass": true,
+        "matched_conditions": [
+          "OSF",
+          "RNF"
+        ],
+        "power_w": 6613.981598,
+        "temperature_gap_k": 10.2188,
+        "tool_wear_min": 241.7916,
+        "torque_nm": 52.8889,
+        "rotational_speed_rpm": 1194.1801,
+        "product_type": "L"
+      },
+      {
+        "event_id": "EVT-d0b79f5f73ba43c2-001",
+        "asset_id": "CNC-S02-L03-04",
+        "component": "HDF",
+        "condition_variant": "hdf",
+        "condition_pass": true,
+        "matched_conditions": [
+          "HDF",
+          "RNF"
+        ],
+        "power_w": 5376.771319,
+        "temperature_gap_k": 7.7,
+        "tool_wear_min": 76.3815,
+        "torque_nm": 40.1128,
+        "rotational_speed_rpm": 1280.0,
+        "product_type": "H"
+      },
+      {
+        "event_id": "EVT-9a43bd3a8f94b7fd-001",
+        "asset_id": "CNC-S02-L04-02",
+        "component": "HDF",
+        "condition_variant": "hdf",
+        "condition_pass": true,
+        "matched_conditions": [
+          "HDF",
+          "RNF"
+        ],
+        "power_w": 4131.420534,
+        "temperature_gap_k": 7.7,
+        "tool_wear_min": 48.3745,
+        "torque_nm": 30.822,
+        "rotational_speed_rpm": 1280.0,
+        "product_type": "L"
+      },
+      {
+        "event_id": "EVT-c9adad2e4ee87cb0-001",
+        "asset_id": "CNC-S02-L04-03",
+        "component": "OSF",
+        "condition_variant": "osf",
+        "condition_pass": true,
+        "matched_conditions": [
+          "OSF",
+          "RNF"
+        ],
+        "power_w": 6553.471172,
+        "temperature_gap_k": 9.5179,
+        "tool_wear_min": 271.716,
+        "torque_nm": 57.3333,
+        "rotational_speed_rpm": 1091.5304,
+        "product_type": "M"
+      },
+      {
+        "event_id": "EVT-15c53b705e117eac-001",
+        "asset_id": "CNC-S02-L05-01",
+        "component": "HDF",
+        "condition_variant": "hdf",
+        "condition_pass": true,
+        "matched_conditions": [
+          "HDF",
+          "RNF"
+        ],
+        "power_w": 4431.900886,
+        "temperature_gap_k": 7.7,
+        "tool_wear_min": 152.8177,
+        "torque_nm": 33.0637,
+        "rotational_speed_rpm": 1280.0,
+        "product_type": "L"
+      },
+      {
+        "event_id": "EVT-775fa2c26c107934-001",
+        "asset_id": "CNC-S02-L05-01",
+        "component": "PWF",
+        "condition_variant": "high_power",
+        "condition_pass": true,
+        "matched_conditions": [
+          "PWF",
+          "RNF"
+        ],
+        "power_w": 9599.998836,
+        "temperature_gap_k": 10.247,
+        "tool_wear_min": 81.2655,
+        "torque_nm": 44.3865,
+        "rotational_speed_rpm": 2065.3405,
+        "product_type": "H"
+      },
+      {
+        "event_id": "EVT-de540c782552b31e-001",
+        "asset_id": "CNC-S02-L05-02",
+        "component": "HDF",
+        "condition_variant": "hdf",
+        "condition_pass": true,
+        "matched_conditions": [
+          "HDF",
+          "RNF"
+        ],
+        "power_w": 7468.150493,
+        "temperature_gap_k": 7.7,
+        "tool_wear_min": 9.1274,
+        "torque_nm": 55.7153,
+        "rotational_speed_rpm": 1280.0,
+        "product_type": "H"
+      },
+      {
+        "event_id": "EVT-a0f47d883f69c423-001",
+        "asset_id": "CNC-S02-L05-03",
+        "component": "RNF",
+        "condition_variant": "rnf",
+        "condition_pass": true,
+        "matched_conditions": [
+          "RNF"
+        ],
+        "power_w": 7197.821727,
+        "temperature_gap_k": 10.527,
+        "tool_wear_min": 77.8888,
+        "torque_nm": 44.0434,
+        "rotational_speed_rpm": 1560.6001,
+        "product_type": "M"
+      },
+      {
+        "event_id": "EVT-f0d2a1ebd5ad3f6d-001",
+        "asset_id": "CNC-S02-L05-04",
+        "component": "RNF",
+        "condition_variant": "rnf",
+        "condition_pass": true,
+        "matched_conditions": [
+          "RNF"
+        ],
+        "power_w": 6441.968915,
+        "temperature_gap_k": 9.0625,
+        "tool_wear_min": 153.2482,
+        "torque_nm": 41.7865,
+        "rotational_speed_rpm": 1472.1566,
+        "product_type": "L"
+      },
+      {
+        "event_id": "EVT-fdd4b687ecc1c84b-001",
+        "asset_id": "CNC-S03-L01-01",
+        "component": "HDF",
+        "condition_variant": "hdf",
+        "condition_pass": true,
+        "matched_conditions": [
+          "PWF",
+          "HDF",
+          "RNF"
+        ],
+        "power_w": 3190.973464,
+        "temperature_gap_k": 7.7,
+        "tool_wear_min": 128.9206,
+        "torque_nm": 23.8059,
+        "rotational_speed_rpm": 1280.0,
+        "product_type": "L"
+      },
+      {
+        "event_id": "EVT-618c201baa0a73fa-001",
+        "asset_id": "CNC-S03-L02-01",
+        "component": "OSF",
+        "condition_variant": "osf",
+        "condition_pass": true,
+        "matched_conditions": [
+          "OSF",
+          "RNF"
+        ],
+        "power_w": 6546.788198,
+        "temperature_gap_k": 8.9998,
+        "tool_wear_min": 277.6226,
+        "torque_nm": 57.3333,
+        "rotational_speed_rpm": 1090.4173,
+        "product_type": "M"
+      },
+      {
+        "event_id": "EVT-6dcf34fd8c7a4760-001",
+        "asset_id": "CNC-S03-L02-01",
+        "component": "RNF",
+        "condition_variant": "rnf",
+        "condition_pass": true,
+        "matched_conditions": [
+          "RNF"
+        ],
+        "power_w": 6470.615543,
+        "temperature_gap_k": 9.1595,
+        "tool_wear_min": 101.8321,
+        "torque_nm": 41.285,
+        "rotational_speed_rpm": 1496.6653,
+        "product_type": "M"
+      },
+      {
+        "event_id": "EVT-004d5935350b4afb-001",
+        "asset_id": "CNC-S03-L02-03",
+        "component": "PWF",
+        "condition_variant": "high_power",
+        "condition_pass": true,
+        "matched_conditions": [
+          "PWF",
+          "RNF"
+        ],
+        "power_w": 9600.006703,
+        "temperature_gap_k": 9.3315,
+        "tool_wear_min": 176.2233,
+        "torque_nm": 32.8989,
+        "rotational_speed_rpm": 2786.516,
+        "product_type": "H"
+      },
+      {
+        "event_id": "EVT-f0c2d0dce47cd070-001",
+        "asset_id": "CNC-S03-L02-04",
+        "component": "PWF",
+        "condition_variant": "high_power",
+        "condition_pass": true,
+        "matched_conditions": [
+          "PWF",
+          "RNF"
+        ],
+        "power_w": 9600.006148,
+        "temperature_gap_k": 8.9,
+        "tool_wear_min": 53.3952,
+        "torque_nm": 50.4653,
+        "rotational_speed_rpm": 1816.5612,
+        "product_type": "M"
+      },
+      {
+        "event_id": "EVT-2ecfc98059db3ec2-001",
+        "asset_id": "CNC-S03-L03-01",
+        "component": "HDF",
+        "condition_variant": "hdf",
+        "condition_pass": true,
+        "matched_conditions": [
+          "HDF",
+          "RNF"
+        ],
+        "power_w": 7062.340498,
+        "temperature_gap_k": 7.7,
+        "tool_wear_min": 17.9382,
+        "torque_nm": 52.6878,
+        "rotational_speed_rpm": 1280.0,
+        "product_type": "M"
+      },
+      {
+        "event_id": "EVT-269396695ca7898a-001",
+        "asset_id": "CNC-S03-L03-02",
+        "component": "HDF",
+        "condition_variant": "hdf",
+        "condition_pass": true,
+        "matched_conditions": [
+          "HDF",
+          "RNF"
+        ],
+        "power_w": 4143.966799,
+        "temperature_gap_k": 7.7,
+        "tool_wear_min": 183.5615,
+        "torque_nm": 30.9156,
+        "rotational_speed_rpm": 1280.0,
+        "product_type": "M"
+      },
+      {
+        "event_id": "EVT-668b89a7e32444dd-001",
+        "asset_id": "CNC-S03-L03-04",
+        "component": "OSF",
+        "condition_variant": "osf",
+        "condition_pass": true,
+        "matched_conditions": [
+          "OSF",
+          "RNF"
+        ],
+        "power_w": 6478.585456,
+        "temperature_gap_k": 10.4923,
+        "tool_wear_min": 278.9844,
+        "torque_nm": 52.8889,
+        "rotational_speed_rpm": 1169.7338,
+        "product_type": "L"
+      },
+      {
+        "event_id": "EVT-a4227f810c89921e-001",
+        "asset_id": "CNC-S03-L04-01",
+        "component": "OSF",
+        "condition_variant": "osf",
+        "condition_pass": true,
+        "matched_conditions": [
+          "OSF",
+          "TWF",
+          "RNF"
+        ],
+        "power_w": 6479.430079,
+        "temperature_gap_k": 10.4549,
+        "tool_wear_min": 235.9313,
+        "torque_nm": 52.8889,
+        "rotational_speed_rpm": 1169.8863,
+        "product_type": "L"
+      },
+      {
+        "event_id": "EVT-dbee5072b39cbc4f-001",
+        "asset_id": "CNC-S03-L04-03",
+        "component": "PWF",
+        "condition_variant": "low_power",
+        "condition_pass": true,
+        "matched_conditions": [
+          "PWF",
+          "RNF"
+        ],
+        "power_w": 3199.999909,
+        "temperature_gap_k": 10.5024,
+        "tool_wear_min": 100.9111,
+        "torque_nm": 34.0,
+        "rotational_speed_rpm": 898.7573,
+        "product_type": "L"
+      },
+      {
+        "event_id": "EVT-a451246b1d50e05c-001",
+        "asset_id": "CNC-S03-L05-01",
+        "component": "HDF",
+        "condition_variant": "hdf",
+        "condition_pass": true,
+        "matched_conditions": [
+          "HDF",
+          "RNF"
+        ],
+        "power_w": 5396.234114,
+        "temperature_gap_k": 7.7,
+        "tool_wear_min": 89.1223,
+        "torque_nm": 40.258,
+        "rotational_speed_rpm": 1280.0,
+        "product_type": "L"
+      },
+      {
+        "event_id": "EVT-706c525edb14467f-001",
+        "asset_id": "CNC-S03-L05-03",
+        "component": "OSF",
+        "condition_variant": "osf",
+        "condition_pass": true,
+        "matched_conditions": [
+          "OSF",
+          "RNF"
+        ],
+        "power_w": 6384.957091,
+        "temperature_gap_k": 11.8073,
+        "tool_wear_min": 244.8703,
+        "torque_nm": 57.3333,
+        "rotational_speed_rpm": 1063.4631,
+        "product_type": "L"
+      },
+      {
+        "event_id": "EVT-67211e509de4b761-001",
+        "asset_id": "CNC-S03-L05-04",
+        "component": "RNF",
+        "condition_variant": "rnf",
+        "condition_pass": true,
+        "matched_conditions": [
+          "RNF"
+        ],
+        "power_w": 8377.169809,
+        "temperature_gap_k": 12.4633,
+        "tool_wear_min": 165.0684,
+        "torque_nm": 53.7521,
+        "rotational_speed_rpm": 1488.241,
+        "product_type": "M"
+      },
+      {
+        "event_id": "EVT-bad41c260a8632c5-001",
+        "asset_id": "CNC-S04-L01-02",
+        "component": "PWF",
+        "condition_variant": "low_power",
+        "condition_pass": true,
+        "matched_conditions": [
+          "PWF",
+          "RNF"
+        ],
+        "power_w": 3199.999909,
+        "temperature_gap_k": 10.9179,
+        "tool_wear_min": 159.1258,
+        "torque_nm": 34.0,
+        "rotational_speed_rpm": 898.7573,
+        "product_type": "H"
+      },
+      {
+        "event_id": "EVT-cbccf127b9f3b35f-001",
+        "asset_id": "CNC-S04-L01-03",
+        "component": "PWF",
+        "condition_variant": "low_power",
+        "condition_pass": true,
+        "matched_conditions": [
+          "PWF",
+          "RNF"
+        ],
+        "power_w": 3199.999909,
+        "temperature_gap_k": 9.3642,
+        "tool_wear_min": 5.3675,
+        "torque_nm": 34.0,
+        "rotational_speed_rpm": 898.7573,
+        "product_type": "L"
+      },
+      {
+        "event_id": "EVT-de3d861d02f87aa2-001",
+        "asset_id": "CNC-S04-L02-01",
+        "component": "HDF",
+        "condition_variant": "hdf",
+        "condition_pass": true,
+        "matched_conditions": [
+          "HDF",
+          "RNF"
+        ],
+        "power_w": 5145.282017,
+        "temperature_gap_k": 7.7,
+        "tool_wear_min": 53.6778,
+        "torque_nm": 38.3858,
+        "rotational_speed_rpm": 1280.0,
+        "product_type": "M"
+      },
+      {
+        "event_id": "EVT-2b7894abb96a9fd7-001",
+        "asset_id": "CNC-S04-L02-03",
+        "component": "HDF",
+        "condition_variant": "hdf",
+        "condition_pass": true,
+        "matched_conditions": [
+          "HDF",
+          "RNF"
+        ],
+        "power_w": 4647.251617,
+        "temperature_gap_k": 7.7,
+        "tool_wear_min": 136.3469,
+        "torque_nm": 34.6703,
+        "rotational_speed_rpm": 1280.0,
+        "product_type": "M"
+      },
+      {
+        "event_id": "EVT-9cde3516c132a905-001",
+        "asset_id": "CNC-S04-L03-02",
+        "component": "TWF",
+        "condition_variant": "twf",
+        "condition_pass": true,
+        "matched_conditions": [
+          "TWF",
+          "RNF"
+        ],
+        "power_w": 6448.194278,
+        "temperature_gap_k": 8.9,
+        "tool_wear_min": 220.0,
+        "torque_nm": 46.0,
+        "rotational_speed_rpm": 1338.6026,
+        "product_type": "L"
+      },
+      {
+        "event_id": "EVT-c7b4a1875a400048-001",
+        "asset_id": "CNC-S04-L03-03",
+        "component": "OSF",
+        "condition_variant": "osf",
+        "condition_pass": true,
+        "matched_conditions": [
+          "OSF",
+          "TWF",
+          "RNF"
+        ],
+        "power_w": 6535.666475,
+        "temperature_gap_k": 10.3044,
+        "tool_wear_min": 225.8503,
+        "torque_nm": 52.8889,
+        "rotational_speed_rpm": 1180.04,
+        "product_type": "L"
+      },
+      {
+        "event_id": "EVT-d7dd84367be92279-001",
+        "asset_id": "CNC-S04-L04-01",
+        "component": "PWF",
+        "condition_variant": "high_power",
+        "condition_pass": true,
+        "matched_conditions": [
+          "PWF",
+          "OSF",
+          "TWF",
+          "RNF"
+        ],
+        "power_w": 9600.000005,
+        "temperature_gap_k": 10.4997,
+        "tool_wear_min": 228.7919,
+        "torque_nm": 55.6017,
+        "rotational_speed_rpm": 1648.749,
+        "product_type": "L"
+      },
+      {
+        "event_id": "EVT-a35af22b520b9c17-001",
+        "asset_id": "CNC-S04-L04-02",
+        "component": "PWF",
+        "condition_variant": "high_power",
+        "condition_pass": true,
+        "matched_conditions": [
+          "PWF",
+          "RNF"
+        ],
+        "power_w": 9599.99963,
+        "temperature_gap_k": 10.0317,
+        "tool_wear_min": 140.2869,
+        "torque_nm": 34.5687,
+        "rotational_speed_rpm": 2651.9147,
+        "product_type": "H"
+      },
+      {
+        "event_id": "EVT-ce850ef276bca16b-001",
+        "asset_id": "CNC-S04-L04-03",
+        "component": "OSF",
+        "condition_variant": "osf",
+        "condition_pass": true,
+        "matched_conditions": [
+          "OSF",
+          "RNF"
+        ],
+        "power_w": 6553.452301,
+        "temperature_gap_k": 10.9671,
+        "tool_wear_min": 276.0581,
+        "torque_nm": 52.8889,
+        "rotational_speed_rpm": 1183.2513,
+        "product_type": "L"
+      },
+      {
+        "event_id": "EVT-bc7da362e9d6c673-001",
+        "asset_id": "CNC-S04-L04-04",
+        "component": "HDF",
+        "condition_variant": "hdf",
+        "condition_pass": true,
+        "matched_conditions": [
+          "HDF",
+          "RNF"
+        ],
+        "power_w": 5431.071444,
+        "temperature_gap_k": 7.7,
+        "tool_wear_min": 192.015,
+        "torque_nm": 40.5179,
+        "rotational_speed_rpm": 1280.0,
+        "product_type": "L"
+      },
+      {
+        "event_id": "EVT-4cbe8fe1c869620f-001",
+        "asset_id": "CNC-S04-L05-01",
+        "component": "PWF",
+        "condition_variant": "high_power",
+        "condition_pass": true,
+        "matched_conditions": [
+          "PWF",
+          "RNF"
+        ],
+        "power_w": 9599.996213,
+        "temperature_gap_k": 10.5953,
+        "tool_wear_min": 99.8787,
+        "torque_nm": 35.3581,
+        "rotational_speed_rpm": 2592.7075,
+        "product_type": "L"
+      },
+      {
+        "event_id": "EVT-c297620393846075-001",
+        "asset_id": "CNC-S04-L05-01",
+        "component": "HDF",
+        "condition_variant": "hdf",
+        "condition_pass": true,
+        "matched_conditions": [
+          "HDF",
+          "RNF"
+        ],
+        "power_w": 5184.060162,
+        "temperature_gap_k": 7.7,
+        "tool_wear_min": 10.4306,
+        "torque_nm": 38.6751,
+        "rotational_speed_rpm": 1280.0,
+        "product_type": "L"
+      },
+      {
+        "event_id": "EVT-9648b996b110f0dd-001",
+        "asset_id": "CNC-S04-L05-04",
+        "component": "OSF",
+        "condition_variant": "osf",
+        "condition_pass": true,
+        "matched_conditions": [
+          "OSF",
+          "RNF"
+        ],
+        "power_w": 6560.361042,
+        "temperature_gap_k": 10.1359,
+        "tool_wear_min": 258.5722,
+        "torque_nm": 52.8889,
+        "rotational_speed_rpm": 1184.4987,
+        "product_type": "H"
+      }
+    ],
+    "tool_wear_continuity": {
+      "tolerance_minutes": 1.0,
+      "reset_value_max_minutes": 5.0,
+      "running_reset_count": 0,
+      "maximum_allowed": 0,
+      "tool_replacement_event_count": 731,
+      "aligned_reset_transition_count": 731,
+      "reset_without_matching_maintenance_count": 0,
+      "replacement_without_reset_count": 0,
+      "running_reset_examples": [],
+      "reset_alignment_examples": [],
+      "pass": true
+    },
+    "pass": true
+  },
+  "agent_example_evaluation": {
+    "mean_score": 1.0,
+    "positive_upstream_accuracy": 1.0,
+    "negative_rejection_accuracy": 1.0,
+    "false_upstream_claim_rate": 0.0,
+    "maintenance_evidence_claims": 1,
+    "maintenance_evidence_accuracy": 1.0
+  },
+  "model_metrics": {
+    "compressor": {
+      "rows": 13641,
+      "positive_rows": 480,
+      "prevalence": 0.035188,
+      "leave_one_site_out_roc_auc": 0.734353,
+      "average_precision": 0.222111,
+      "top_5pct_precision": 0.199413,
+      "top_5pct_recall": 0.283333,
+      "folds": {
+        "S01": {
+          "rows": 3412,
+          "positive_rows": 120,
+          "roc_auc": 0.79961,
+          "average_precision": 0.371399
+        },
+        "S02": {
+          "rows": 3421,
+          "positive_rows": 120,
+          "roc_auc": 0.621223,
+          "average_precision": 0.144332
+        },
+        "S03": {
+          "rows": 3407,
+          "positive_rows": 120,
+          "roc_auc": 0.798745,
+          "average_precision": 0.289943
+        },
+        "S04": {
+          "rows": 3401,
+          "positive_rows": 120,
+          "roc_auc": 0.747666,
+          "average_precision": 0.149539
+        }
+      },
+      "feature_count": 40,
+      "features": [
+        "voltage_raw_current",
+        "voltage_raw_6h_mean",
+        "voltage_raw_6h_std",
+        "voltage_raw_6h_max_abs",
+        "voltage_raw_6h_change",
+        "voltage_raw_1h_change",
+        "voltage_raw_abs_current",
+        "voltage_raw_6h_abs_mean",
+        "rotation_raw_current",
+        "rotation_raw_6h_mean",
+        "rotation_raw_6h_std",
+        "rotation_raw_6h_max_abs",
+        "rotation_raw_6h_change",
+        "rotation_raw_1h_change",
+        "rotation_raw_abs_current",
+        "rotation_raw_6h_abs_mean",
+        "pressure_raw_current",
+        "pressure_raw_6h_mean",
+        "pressure_raw_6h_std",
+        "pressure_raw_6h_max_abs",
+        "pressure_raw_6h_change",
+        "pressure_raw_1h_change",
+        "pressure_raw_abs_current",
+        "pressure_raw_6h_abs_mean",
+        "vibration_raw_current",
+        "vibration_raw_6h_mean",
+        "vibration_raw_6h_std",
+        "vibration_raw_6h_max_abs",
+        "vibration_raw_6h_change",
+        "vibration_raw_1h_change",
+        "vibration_raw_abs_current",
+        "vibration_raw_6h_abs_mean",
+        "relative_vibration_z_current",
+        "relative_vibration_z_6h_mean",
+        "relative_vibration_z_6h_std",
+        "relative_vibration_z_6h_max_abs",
+        "relative_vibration_z_6h_change",
+        "relative_vibration_z_1h_change",
+        "relative_vibration_z_abs_current",
+        "relative_vibration_z_6h_abs_mean"
+      ]
+    },
+    "cnc": {
+      "rows": 54567,
+      "positive_rows": 1312,
+      "prevalence": 0.024044,
+      "leave_one_site_out_roc_auc": 0.813453,
+      "average_precision": 0.52958,
+      "top_5pct_precision": 0.287757,
+      "top_5pct_recall": 0.598323,
+      "folds": {
+        "S01": {
+          "rows": 13640,
+          "positive_rows": 288,
+          "roc_auc": 0.840377,
+          "average_precision": 0.577677
+        },
+        "S02": {
+          "rows": 13628,
+          "positive_rows": 405,
+          "roc_auc": 0.782663,
+          "average_precision": 0.495328
+        },
+        "S03": {
+          "rows": 13642,
+          "positive_rows": 309,
+          "roc_auc": 0.808786,
+          "average_precision": 0.540967
+        },
+        "S04": {
+          "rows": 13657,
+          "positive_rows": 310,
+          "roc_auc": 0.854628,
+          "average_precision": 0.537935
+        }
+      },
+      "feature_count": 40,
+      "features": [
+        "air_temperature_k_current",
+        "air_temperature_k_6h_mean",
+        "air_temperature_k_6h_std",
+        "air_temperature_k_6h_max_abs",
+        "air_temperature_k_6h_change",
+        "air_temperature_k_1h_change",
+        "air_temperature_k_abs_current",
+        "air_temperature_k_6h_abs_mean",
+        "process_temperature_k_current",
+        "process_temperature_k_6h_mean",
+        "process_temperature_k_6h_std",
+        "process_temperature_k_6h_max_abs",
+        "process_temperature_k_6h_change",
+        "process_temperature_k_1h_change",
+        "process_temperature_k_abs_current",
+        "process_temperature_k_6h_abs_mean",
+        "rotational_speed_rpm_current",
+        "rotational_speed_rpm_6h_mean",
+        "rotational_speed_rpm_6h_std",
+        "rotational_speed_rpm_6h_max_abs",
+        "rotational_speed_rpm_6h_change",
+        "rotational_speed_rpm_1h_change",
+        "rotational_speed_rpm_abs_current",
+        "rotational_speed_rpm_6h_abs_mean",
+        "torque_nm_current",
+        "torque_nm_6h_mean",
+        "torque_nm_6h_std",
+        "torque_nm_6h_max_abs",
+        "torque_nm_6h_change",
+        "torque_nm_1h_change",
+        "torque_nm_abs_current",
+        "torque_nm_6h_abs_mean",
+        "tool_wear_min_current",
+        "tool_wear_min_6h_mean",
+        "tool_wear_min_6h_std",
+        "tool_wear_min_6h_max_abs",
+        "tool_wear_min_6h_change",
+        "tool_wear_min_1h_change",
+        "tool_wear_min_abs_current",
+        "tool_wear_min_6h_abs_mean"
+      ]
+    }
+  }
+}
