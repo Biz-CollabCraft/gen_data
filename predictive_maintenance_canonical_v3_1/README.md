@@ -1,20 +1,30 @@
 # Predictive Maintenance Canonical V3.1
 
-AI4I 2020의 핵심 물리 관계를 반영한 압축기·CNC 합성 데이터셋, 시간별
-예측 결과, positive/negative 에이전트 평가 자산, CSV Replay Server를 함께
-제공한다.
+AI4I 2020의 핵심 물리 관계를 반영한 압축기·CNC 합성 source dataset과
+positive/negative 평가 자산, source replay 도구를 제공한다. 과거 V3.1에서 생성한
+시간별 prediction/Result Artifact도 회귀·호환성 검증을 위해 **reference fixture**로
+보존한다.
 
-신규 제품 연동과 팀 공유의 기준 경로는
+신규 source 연동과 팀 공유의 기준 경로는
 `predictive_maintenance_canonical_v3_1/`이다. 기존 이름이 V3인 작업 폴더를
 V3.0 기준본으로 간주하거나 신규 ingestion 입력으로 사용하지 않는다.
 
+현재 운영 책임은 [`OWNERSHIP_AND_MIGRATION.md`](./OWNERSHIP_AND_MIGRATION.md)를
+따른다.
+
 ```text
-AI4I-style coupled CNC physics
-→ canonical source와 evaluation truth 분리
-→ leave-one-site-out prediction timeline
-→ 공통 Result Artifact
-→ Replay Server와 SSE
+gen_data
+AI4I-style Canonical source generation + source/reference validation
+        ↓
+ontology_dashboard/systems/generator
+Semantic/ML + versioned Model Artifact
+        ↓
+ontology_dashboard/systems/backend/diagnosis
+runtime inference + Result Artifact / Evidence
 ```
+
+`canonical/model_outputs/*`와 `model/prediction_pipeline.py`는 이 저장소의 제품 운영
+소유권을 뜻하지 않으며 migration/regression baseline으로 남겨 둔다.
 
 ## V3.1에서 해결한 문제
 
@@ -25,7 +35,7 @@ AI4I-style coupled CNC physics
 - `validate_package.py`에 `ai4i_physics` 검증 gate 추가
 - 상류 원인이 없는 `negative_local_only` case 4건 추가
 - `NO_UPSTREAM_RELATION`과 `claim_status=unlikely` 채점 지원
-- 대시보드·에이전트·보고서 공통 `result_artifact.jsonl` 추가
+- 당시 대시보드·에이전트·보고서 호환성 검증용 `result_artifact.jsonl` fixture 추가
 - 공구 마모 초기화를 실제 정비 시작 tick으로 이동
 - 가동 중 tool wear 감소와 정비-event/reset 정렬을 release gate로 검증
 - Agent evidence에 sensor와 maintenance 이력을 함께 표현·검증
@@ -105,7 +115,7 @@ predictive_maintenance_canonical_v3_1/
 │   ├── public_case_index.csv
 │   ├── hidden_truth/
 │   └── experiment_manifest.json
-├── model/prediction_pipeline.py
+├── model/prediction_pipeline.py        # migration/reference implementation
 ├── agent/
 ├── api/
 ├── scripts/
@@ -135,7 +145,7 @@ SHAP은 선택 사항이다. 미설치 시 표준화된 linear-logit contributio
 .venv/bin/pip install -r requirements-optional.txt
 ```
 
-## 전체 재생성
+## Source 기본 재생성
 
 ```bash
 .venv/bin/python scripts/run_pipeline.py \
@@ -152,8 +162,22 @@ SHAP은 선택 사항이다. 미설치 시 표준화된 linear-logit contributio
 2. Positive upstream case 16건과 negative local-only case 4건
 3. Positive/negative evaluator smoke fixture
 4. 구조·checksum·AI4I physics validation
-5. 모델, prediction timeline, Result Artifact
-6. 동일 seed 재현성 검증
+5. 동일 seed 재현성 검증
+
+기존 V3.1 ML/prediction/result reference fixture까지 다시 만들어 checksum/호환성을
+검증해야 할 때만 다음 옵션을 추가한다.
+
+```bash
+.venv/bin/python scripts/run_pipeline.py \
+  --days 30 \
+  --seed 42 \
+  --rate-profile balanced_demo \
+  --interventions 4 \
+  --negative-cases 4 \
+  --include-reference-model-fixtures
+```
+
+이 모드는 제품 운영 pipeline이 아니라 **reference fixture regeneration**이다.
 
 ## 생성 결과
 
@@ -167,8 +191,8 @@ SHAP은 선택 사항이다. 미설치 시 표준화된 linear-logit contributio
 | 정비 event | 790 |
 | 전체 failure truth | 76 |
 | Agent public case | 20 |
-| Prediction timeline | 68,208 |
-| Result Artifact | 100 |
+| Prediction timeline reference fixture | 68,208 |
+| Result Artifact reference fixture | 100 |
 
 모델 sanity benchmark:
 
@@ -180,9 +204,9 @@ SHAP은 선택 사항이다. 미설치 시 표준화된 linear-logit contributio
 이는 실제 운영 성능 보장이 아니라 합성 데이터의 시간 예측 가능성을 확인하는
 sanity benchmark다.
 
-## Result Artifact
+## Result Artifact reference fixture
 
-공통 결과는 다음 파일에 있다.
+V3.1 compatibility/regression 기준 결과는 다음 파일에 보존한다.
 
 ```text
 canonical/model_outputs/result_artifact.jsonl
@@ -200,11 +224,15 @@ recommended_action
 provenance
 ```
 
-현재 모델은 binary failure-within-24h 모델이므로 `predicted_failure_type`은
+이 reference fixture의 모델은 binary failure-within-24h 모델이므로 `predicted_failure_type`은
 PWF/HDF/OSF/TWF multiclass 결과가 아니다. 자세한 계약은
 `RESULT_ARTIFACT_SCHEMA.md`를 따른다.
 
-## Dataset API
+**운영 Product Result Artifact/Evidence의 최종 producer는
+`ontology_dashboard/systems/backend/diagnosis`다.** 제품 runtime이 위 JSONL 파일을
+최신 결과 SoT로 직접 소비하는 구조를 계약으로 삼지 않는다.
+
+## Source/reference fixture API
 
 ```bash
 .venv/bin/python api/dataset_server.py --port 8000
@@ -227,10 +255,14 @@ GET /result-artifacts
 GET /experiments
 ```
 
-Dataset API는 evaluation truth와 experiment hidden truth를 읽거나 노출하는
-endpoint 자체를 제공하지 않는다. 두 truth 영역은 평가·검증 코드에서만 사용한다.
+이 서버는 패키지 확인과 migration/regression 검증용 read-only 도구다. prediction 및
+Result Artifact endpoint가 있더라도 해당 응답은 `canonical/model_outputs/`의
+**reference fixture**를 보여주는 것이며 제품 운영 API가 아니다.
 
-## Time Machine Replay Server
+evaluation truth와 experiment hidden truth를 읽거나 노출하는 endpoint 자체를
+제공하지 않는다. 두 truth 영역은 평가·검증 코드에서만 사용한다.
+
+## Source/reference Time Machine Replay Server
 
 ```bash
 .venv/bin/python api/replay_server.py --port 8001 --speed 60
@@ -251,6 +283,10 @@ POST /simulation/seek?time=2026-08-12T15:00:00+09:00
 ```
 
 `/simulation/events`는 `text/event-stream` SSE를 사용한다.
+
+Replay의 sensor observation은 Canonical source를 그대로 재생한다. 함께 표시되는
+prediction timeline은 V3.1 deterministic replay **reference fixture**이며 운영 runtime
+inference는 `ontology_dashboard/systems/backend/diagnosis` 책임이다.
 
 ## Agent benchmark
 

@@ -1,5 +1,7 @@
 {
   "valid": true,
+  "validation_scope": "source_plus_reference_fixtures",
+  "model_outputs_role": "reference_regression_fixture",
   "canonical_source_separation": "pass",
   "canonical_checksum_integrity": "pass",
   "evaluation_truth_checksum_integrity": "pass",

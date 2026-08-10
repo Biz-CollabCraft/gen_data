@@ -1,4 +1,9 @@
-"""Validate canonical separation, experiment isolation, and model contracts."""
+"""Validate Canonical source integrity and optional reference ML fixtures.
+
+The model/prediction/result checks in this repository validate migration and
+regression fixtures. They do not make gen_data the operational prediction or
+Product Result Artifact producer.
+"""
 
 from __future__ import annotations
 
@@ -108,7 +113,7 @@ def pearson(values_a: list[float], values_b: list[float]) -> float:
     return numerator / denominator
 
 
-def validate(root: Path) -> dict[str, object]:
+def validate(root: Path, *, validate_reference_fixtures: bool = True) -> dict[str, object]:
     dataset_dir = root / "canonical" / "dataset"
     truth_dir = root / "canonical" / "evaluation_truth"
     experiment_root = root / "experiments" / "connected_air_supply"
@@ -136,6 +141,11 @@ def validate(root: Path) -> dict[str, object]:
         raise AssertionError(f"required outputs missing: {missing}")
 
     manifest = json.loads((dataset_dir / "dataset_manifest.json").read_text(encoding="utf-8"))
+    ownership_contract = manifest.get("ownership_contract", {})
+    if ownership_contract.get("repository_role") != "source_data_producer":
+        raise AssertionError("dataset manifest repository ownership contract missing")
+    if ownership_contract.get("model_outputs_in_this_package") != "reference_regression_fixture":
+        raise AssertionError("dataset manifest model output fixture role missing")
     experiment_manifest = json.loads(
         (experiment_root / "experiment_manifest.json").read_text(encoding="utf-8")
     )
@@ -761,10 +771,25 @@ def validate(root: Path) -> dict[str, object]:
         raise AssertionError("downstream experiment signal is not observable in enough cases")
 
     model_contract_path = root / "canonical" / "model_outputs" / "model_contract.json"
-    model_contract_status = "not_generated"
+    model_contract_status = (
+        "not_generated"
+        if validate_reference_fixtures
+        else "not_checked_reference_fixture"
+    )
     model_metrics: dict[str, object] = {}
-    if model_contract_path.exists():
+    if validate_reference_fixtures and model_contract_path.exists():
         contract = json.loads(model_contract_path.read_text(encoding="utf-8"))
+        if contract.get("artifact_role") != "reference_regression_fixture":
+            raise AssertionError("model output contract is not marked as a reference fixture")
+        operational_ownership = contract.get("operational_ownership", {})
+        if operational_ownership.get("model_artifact_producer") != (
+            "Biz-CollabCraft/ontology_dashboard/systems/generator"
+        ):
+            raise AssertionError("operational Model Artifact producer contract mismatch")
+        if operational_ownership.get("runtime_result_producer") != (
+            "Biz-CollabCraft/ontology_dashboard/systems/backend/diagnosis"
+        ):
+            raise AssertionError("operational Result Artifact producer contract mismatch")
         if contract.get("asset_relation_used_as_feature") is not False:
             raise AssertionError("asset relations used as canonical model features")
         if contract.get("upstream_feature_used") is not False:
@@ -866,6 +891,12 @@ def validate(root: Path) -> dict[str, object]:
 
     summary = {
         "valid": True,
+        "validation_scope": (
+            "source_plus_reference_fixtures"
+            if validate_reference_fixtures
+            else "source_only"
+        ),
+        "model_outputs_role": "reference_regression_fixture",
         "canonical_source_separation": "pass",
         "canonical_checksum_integrity": "pass",
         "evaluation_truth_checksum_integrity": "pass",
@@ -951,10 +982,29 @@ def validate(root: Path) -> dict[str, object]:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Validate canonical package and agent experiments")
+    parser = argparse.ArgumentParser(
+        description="Validate Canonical source and optional reference ML fixtures"
+    )
     parser.add_argument("--root", default=str(Path(__file__).resolve().parents[1]))
+    parser.add_argument(
+        "--source-only",
+        action="store_true",
+        help=(
+            "validate Source Data Producer assets without treating existing "
+            "model/prediction/result reference fixtures as part of this run"
+        ),
+    )
     args = parser.parse_args()
-    print(json.dumps(validate(Path(args.root)), ensure_ascii=False, indent=2))
+    print(
+        json.dumps(
+            validate(
+                Path(args.root),
+                validate_reference_fixtures=not args.source_only,
+            ),
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
 
 
 if __name__ == "__main__":

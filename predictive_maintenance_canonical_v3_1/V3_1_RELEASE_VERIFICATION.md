@@ -1,5 +1,9 @@
 # Predictive Maintenance Canonical V3.1 Release Verification
 
+> **Historical/reference verification:** 이 문서에서 검증한 model/prediction/Result
+> Artifact는 현재 `gen_data` 운영 결과가 아니라 V3.1 migration/regression fixture다.
+> 현재 소유권은 `OWNERSHIP_AND_MIGRATION.md`를 따른다.
+
 ## 검증 기준
 
 ```text
@@ -22,7 +26,7 @@ canonical dataset + evaluation truth
 → package validation
 → model training
 → prediction snapshot/factor/timeline
-→ Result Artifact
+→ Result Artifact reference fixture
 → full reproducibility validation
 ```
 
@@ -39,7 +43,7 @@ canonical dataset + evaluation truth
 | Failure recovery events | 76 |
 | Public agent cases | 20 |
 | Prediction timeline | 68,208 |
-| Result Artifact | 100 |
+| Result Artifact reference fixture | 100 |
 
 ## Tool wear continuity
 

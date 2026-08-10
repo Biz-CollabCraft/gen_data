@@ -1,8 +1,8 @@
 # Predictive Maintenance Canonical V3.1 Schema
 
 이 문서는 V3.1 패키지의 데이터 계층과 파일별 역할을 정의한다. 원천 관측,
-평가용 정답, 모델 파생 결과, 에이전트 실험 자산을 서로 다른 계약으로
-관리한다.
+평가용 정답, reference model output, 에이전트 실험 자산을 서로 다른 계약으로
+관리한다. 현재 운영 소유권은 `OWNERSHIP_AND_MIGRATION.md`를 우선한다.
 
 ## 1. Canonical source
 
@@ -85,18 +85,23 @@ sensor tick에서 발생하며 그 행은 `operating_state=maintenance`다. 가�
 이 파일은 label 생성·검증 전용이다. Canonical feature 또는 공개 agent
 입력으로 사용하지 않는다.
 
-## 3. Derived model outputs
+## 3. Derived model output reference fixtures
 
 경로: `canonical/model_outputs/`
 
 - `prediction_snapshot.jsonl`: 자산별 최신 위험도
 - `prediction_factor.jsonl`: 최신 예측의 Top-3 기여 factor
 - `prediction_timeline.jsonl`: replay용 시간별 out-of-fold 위험도
-- `result_artifact.jsonl`: 대시보드·에이전트·보고서 공통 결과 계약
+- `result_artifact.jsonl`: V3.1 Product Result Artifact compatibility fixture
 - `model_metrics.json`: leave-one-site-out sanity benchmark
 - `model_contract.json`: 입력·출력 checksum 및 모델 계약
 
-모델 결과는 canonical source에 역기입하지 않는다.
+이 파일은 migration/regression baseline이며 운영 Model Artifact 또는 Product Result
+Artifact의 SoT가 아니다. 운영 feature/training/Model Artifact는
+`ontology_dashboard/systems/generator`, runtime inference/Result Artifact/Evidence는
+`ontology_dashboard/systems/backend/diagnosis`가 소유한다.
+
+reference 모델 결과도 canonical source에 역기입하지 않는다.
 
 ## 4. Optional agent benchmark
 

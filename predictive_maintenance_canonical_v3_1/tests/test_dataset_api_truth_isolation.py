@@ -1,4 +1,4 @@
-"""Regression test for evaluation-truth isolation in the product Dataset API."""
+"""Regression test for truth isolation in the source/reference Dataset API."""
 
 from __future__ import annotations
 

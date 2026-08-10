@@ -1,9 +1,14 @@
 # Predictive Maintenance Canonical V3.1 Final Audit
 
+> 이 문서는 V3.1 이관 당시 패키지 전체의 **historical/reference audit 기록**이다.
+> 당시 함께 검증한 model/prediction/Result Artifact는 현재 운영 SoT가 아니라 regression
+> fixture다. 현재 책임 경계는 `OWNERSHIP_AND_MIGRATION.md`를 따른다.
+
 ## 판정
 
 V3.1은 AI4I 물리 관계, failure condition, tool-wear continuity,
-negative agent control, Result Artifact를 포함한 공유 가능한 데이터 기준본이다.
+negative agent control과 Result Artifact reference fixture를 포함한 공유 가능한
+source/reference 기준본이다.
 
 ## Release gates
 
@@ -81,13 +86,13 @@ maintenance evidence accuracy 1.0
 
 Smoke case 두 건은 formal score에서 제외한다.
 
-## Result Artifact
+## Result Artifact reference fixture
 
-100개 자산 모두 공통 schema를 충족한다. 각 artifact는 probability, generic
+이 audit에서 검증한 100개 자산 fixture는 모두 공통 schema를 충족한다. 각 artifact는 probability, generic
 predicted class, status grade, Top-3 factors, recommended action, provenance를
 포함한다.
 
-현재 모델은 multiclass failure-mode 모델이 아니므로 PWF/HDF/OSF/TWF를 직접
+해당 reference 모델은 multiclass failure-mode 모델이 아니므로 PWF/HDF/OSF/TWF를 직접
 예측한다고 주장하지 않는다.
 
 ## 남은 비차단 항목

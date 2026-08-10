@@ -1,7 +1,12 @@
 {
+  "artifact_role": "reference_regression_fixture",
+  "operational_ownership": {
+    "model_artifact_producer": "Biz-CollabCraft/ontology_dashboard/systems/generator",
+    "runtime_result_producer": "Biz-CollabCraft/ontology_dashboard/systems/backend/diagnosis"
+  },
   "model_version": "independent-logreg-v3.1",
   "dataset_version": "canonical-ai4i-physics-v3.1",
-  "dataset_manifest_sha256": "cc47c66e8c9da8f4617c17a9d27d8eb7ad0f5f6d3bdb96bcb2025ab526a5f61f",
+  "dataset_manifest_sha256": "0480d562648d84052e0c6fbd6294dc3a06dd19e7d3a4c1cabb7d0da122efeaf1",
   "canonical_input_sha256": {
     "asset_master.csv": "46d28fb8af9a9737473b71325a54115031d42b92fd2fc1cc8d890ce9ea726192",
     "asset_relation.csv": "4602eb35b30f33da0df197d320a9779f91cd40fcb5dc98d194826c6d92945613",

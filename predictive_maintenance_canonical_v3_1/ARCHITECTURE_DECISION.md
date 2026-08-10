@@ -1,5 +1,10 @@
 # ADR: Canonical Dataset, Agent Evaluation Scenario, Replay Runtime 분리
 
+> **현재 책임 해석:** 이 ADR의 Canonical/source·truth·experiment 분리 결정은
+> `gen_data`의 운영 계약으로 유지한다. 아래 model output/replay prediction 항목은
+> V3.1 reference fixture 정책이며, 운영 ML/Result 책임은 `OWNERSHIP_AND_MIGRATION.md`와
+> `ontology_dashboard/docs/architecture.md`의 최신 경계를 따른다.
+
 ## 결정
 
 압축기와 CNC는 독립 관측 데이터로 생성한다. `SUPPLIES_AIR_TO`는 설비 구성 관계로만 canonical dataset에 포함한다. 압축기 때문에 CNC 센서가 얼마나 바뀌었다는 값은 canonical dataset에 기록하지 않는다.
@@ -22,7 +27,7 @@ Evaluation truth
   failure schedule
   compressor/CNC failure truth
 
-Derived model output
+Derived model output (reference/regression fixture)
   prediction snapshot
   model factor
   prediction timeline
@@ -40,8 +45,8 @@ Optional agent experiment
 - `asset_relation.csv`는 모델의 기본 입력이 아니다.
 - 상류 관계 feature는 canonical model에 자동 포함하지 않는다.
 - 모델 출력은 원천 CSV에 역기입하지 않는다.
-- Replay용 예측은 시간별 `prediction_timeline.jsonl`로 사전 계산하며 canonical source와 분리한다.
-- 대시보드·에이전트·보고서는 `result_artifact.jsonl` 공통 계약을 우선 소비한다.
+- Reference replay용 예측은 시간별 `prediction_timeline.jsonl`로 사전 계산하며 canonical source와 분리한다.
+- `result_artifact.jsonl`은 V3.1 compatibility fixture로 보존한다. 운영 제품은 Backend가 생성한 Result Artifact/Evidence를 소비한다.
 
 ## AI4I 물리 정책
 
@@ -62,7 +67,7 @@ Optional agent experiment
 
 - Replay Server는 canonical CSV에 없는 센서값을 생성하지 않는다.
 - simulation clock만 진행하며 현재 시점의 CSV row를 공개한다.
-- seek 시 모델을 재학습하지 않고 해당 시점 이전의 가장 가까운 사전 계산 prediction을 사용한다.
+- reference replay seek 시 모델을 재학습하지 않고 해당 시점 이전의 가장 가까운 사전 계산 prediction fixture를 사용한다.
 - start, pause, resume, reset, speed, seek를 지원한다.
 - 실시간 갱신은 SSE를 기본 transport로 사용한다.
 - evaluation truth와 experiment hidden truth는 Replay API로 노출하지 않는다.

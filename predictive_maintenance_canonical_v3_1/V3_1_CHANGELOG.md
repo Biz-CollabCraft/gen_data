@@ -1,5 +1,9 @@
 # Predictive Maintenance Canonical V3.1 변경 내역
 
+> 이 changelog의 Result Artifact 관련 항목은 V3.1 당시 기능 이력이다. 현재 파일과
+> schema는 compatibility/reference fixture이며 운영 책임은
+> `OWNERSHIP_AND_MIGRATION.md`의 최신 경계를 따른다.
+
 V3.1은 V3의 AI4I 물리 계약과 Result Artifact 구조를 유지하면서, 두 차례 팀
 리뷰에서 확인된 공구 마모 상태 전이·검증·에이전트 증거·문서 정합성 문제를
 수정한 배포 기준본이다.

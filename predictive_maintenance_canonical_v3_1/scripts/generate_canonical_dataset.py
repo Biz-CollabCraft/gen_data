@@ -888,6 +888,13 @@ def generate(
         "days": days,
         "seed": seed,
         "rate_profile": rate_profile,
+        "ownership_contract": {
+            "repository_role": "source_data_producer",
+            "canonical_source_owner": "Biz-CollabCraft/gen_data",
+            "semantic_ml_owner": "Biz-CollabCraft/ontology_dashboard/systems/generator",
+            "runtime_result_owner": "Biz-CollabCraft/ontology_dashboard/systems/backend/diagnosis",
+            "model_outputs_in_this_package": "reference_regression_fixture",
+        },
         "observation_interval_minutes": interval_minutes,
         "asset_counts": {"compressor": 20, "cnc": 80},
         "source_contract": {

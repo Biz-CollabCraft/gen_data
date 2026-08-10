@@ -1,7 +1,13 @@
 # Result Artifact Schema
 
-`canonical/model_outputs/result_artifact.jsonl`은 모델 내부 파일을 직접 소비하지
-않도록 대시보드, 에이전트, 리포트가 공유하는 공통 결과 산출물이다.
+> **현재 소유권:** 이 문서와 `canonical/model_outputs/result_artifact.jsonl`은
+> Canonical V3.1의 **compatibility/reference fixture**다. 제품 운영 Result Artifact의
+> canonical Source of Truth와 최종 producer는 `Biz-CollabCraft/ontology_dashboard`의
+> `systems/backend/diagnosis`다. 동일 계약을 두 저장소에서 독립적으로 버전 진화시키지
+> 않는다.
+
+`canonical/model_outputs/result_artifact.jsonl`은 V3.1 이관 당시 대시보드, 에이전트,
+리포트가 모델 내부 파일을 직접 소비하지 않도록 정의했던 공통 결과 fixture다.
 
 ## 계약
 
@@ -62,7 +68,8 @@ HDF, OSF, TWF를 분류하는 multiclass 결과로 해석하면 안 된다. Mult
 
 ## 소비 원칙
 
-- 대시보드는 `status_grade`, probability, factors, action을 사용한다.
+- 이 저장소에서는 schema/sample/regression compatibility 검증에 사용한다.
+- 제품 대시보드·에이전트·보고서는 운영 Backend API가 제공하는 Result Artifact/Evidence를 소비한다.
 - 에이전트는 artifact만으로 원인을 확정하지 않고 canonical evidence를 추가 조회한다.
 - 보고서는 provenance를 함께 보존한다.
 - canonical sensor CSV와 result artifact를 하나의 원천 테이블로 합치지 않는다.

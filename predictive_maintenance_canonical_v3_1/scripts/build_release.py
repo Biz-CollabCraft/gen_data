@@ -1,4 +1,9 @@
-"""Build a cross-platform ZIP release with an English root directory."""
+"""Build the complete Canonical V3.1 source/reference fixture ZIP release.
+
+This historical package release intentionally includes validated ML/prediction/
+Result Artifact regression fixtures. Requiring those fixtures for this ZIP does
+not make gen_data their operational product owner.
+"""
 
 from __future__ import annotations
 
@@ -53,7 +58,10 @@ def validate_package(root: Path) -> None:
         )
     )
     if summary.get("valid") is not True or summary.get("model_contract") != "pass":
-        raise RuntimeError("release requires a fully validated canonical package and model timeline")
+        raise RuntimeError(
+            "complete reference release requires validated Canonical source and "
+            "model/prediction/result fixtures"
+        )
 
 
 def build(root: Path, output_dir: Path) -> tuple[Path, Path]:

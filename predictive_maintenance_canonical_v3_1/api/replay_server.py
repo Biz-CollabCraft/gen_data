@@ -1,8 +1,10 @@
-"""Canonical CSV replay server with a controllable simulation clock.
+"""Canonical source replay server with a controllable simulation clock.
 
 This server never generates new sensor values. It replays the validated
-canonical observations in timestamp order and joins precomputed derived model
-predictions from ``prediction_timeline.jsonl``. Evaluation truth and optional
+canonical observations in timestamp order. When present, precomputed
+``prediction_timeline.jsonl`` rows are V3.1 deterministic reference/regression
+fixtures, not operational runtime inference. Product inference belongs to
+ontology_dashboard/systems/backend/diagnosis. Evaluation truth and optional
 experiment hidden truth are never exposed.
 """
 

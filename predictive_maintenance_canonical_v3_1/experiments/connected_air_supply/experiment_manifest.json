@@ -13,7 +13,7 @@
   "public_observation_schema_contains_effect_columns": false,
   "public_case_count": 20,
   "hidden_truth_is_evaluator_only": true,
-  "canonical_dataset_manifest_sha256": "cc47c66e8c9da8f4617c17a9d27d8eb7ad0f5f6d3bdb96bcb2025ab526a5f61f",
+  "canonical_dataset_manifest_sha256": "0480d562648d84052e0c6fbd6294dc3a06dd19e7d3a4c1cabb7d0da122efeaf1",
   "public_case_index_sha256": "d2d28bceadf58720c943f5a4c0048e6b5f439961012e387f0c72df46c43cde8e",
   "hidden_truth_sha256": "ba70f3e7e126d38990a801a2bcb706b7f235a24a13ea94aa2a79bc9d75a759c9",
   "case_files": {

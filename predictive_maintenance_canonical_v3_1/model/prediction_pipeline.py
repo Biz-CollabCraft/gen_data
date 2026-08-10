@@ -1,8 +1,18 @@
-"""Independent compressor/CNC temporal models and explanation outputs.
+"""Legacy V3.1 ML/prediction reference implementation for regression/migration.
 
 Only canonical observation fields are used as features. Evaluation truth is
 used solely to create the future-failure label. Asset relations and optional
 experiment files are not loaded by this pipeline.
+
+Operational ownership is now split by contract:
+- feature engineering / model training / versioned Model Artifact publish:
+  ontology_dashboard/systems/generator
+- runtime inference / Product Result Artifact / Evidence:
+  ontology_dashboard/systems/backend/diagnosis
+
+This file remains in gen_data so imported V3.1 model/prediction/result fixtures
+can be regenerated and compared during migration. It is not the product runtime
+pipeline or operational Source of Truth.
 """
 
 from __future__ import annotations
@@ -368,6 +378,10 @@ def build_result_artifacts(
     factors: list[dict[str, object]],
     dataset_version: str,
 ) -> list[dict[str, object]]:
+    """Regenerate the legacy Product Result Artifact compatibility fixture.
+
+    The operational producer is ontology_dashboard/systems/backend/diagnosis.
+    """
     factors_by_prediction: dict[str, list[dict[str, object]]] = defaultdict(list)
     for factor in factors:
         factors_by_prediction[str(factor["prediction_id"])].append(factor)
@@ -520,6 +534,11 @@ def run(root: Path, horizon_hours: int) -> dict[str, object]:
     )
     metrics_path.write_text(json.dumps(metrics, ensure_ascii=False, indent=2), encoding="utf-8")
     contract = {
+        "artifact_role": "reference_regression_fixture",
+        "operational_ownership": {
+            "model_artifact_producer": "Biz-CollabCraft/ontology_dashboard/systems/generator",
+            "runtime_result_producer": "Biz-CollabCraft/ontology_dashboard/systems/backend/diagnosis",
+        },
         "model_version": MODEL_VERSION,
         "dataset_version": dataset_manifest["dataset_version"],
         "dataset_manifest_sha256": sha256(manifest_path),

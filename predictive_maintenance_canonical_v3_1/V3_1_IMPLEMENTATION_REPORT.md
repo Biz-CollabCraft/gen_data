@@ -1,5 +1,9 @@
 # V3.1 구현 결과
 
+> 이 문서는 V3.1 구현 당시 기록이다. model/prediction/Result Artifact 관련 구현은
+> 현재 migration/reference baseline으로 보존하며, 운영 소유권은
+> `OWNERSHIP_AND_MIGRATION.md`를 따른다.
+
 ## 목적
 
 V2의 데이터 계층 분리와 Replay 기능은 유지하면서, CNC 생성기를 AI4I 2020의
@@ -52,7 +56,7 @@ V3.1에서는 공구 교체와 센서 상태 전이를 다시 정렬했다. Tool
 - Negative rejection accuracy와 false upstream claim rate 추가
 - Sensor/maintenance evidence type 분기와 canonical maintenance 근거 검증
 
-### Result Artifact
+### Result Artifact reference fixture
 
 - `canonical/model_outputs/result_artifact.jsonl`
 - `SCHEMA.md`
@@ -71,7 +75,7 @@ V3.1에서는 공구 교체와 센서 상태 전이를 다시 정렬했다. Tool
 | CNC failure | 56 |
 | Public agent case | 20 |
 | Prediction timeline | 68,208 |
-| Result Artifact | 100 |
+| Result Artifact reference fixture | 100 |
 
 ## 물리 검증
 

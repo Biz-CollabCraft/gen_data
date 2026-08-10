@@ -1,6 +1,11 @@
 # Dashboard Replay Integration
 
-대시보드는 `api/replay_server.py`의 SSE를 구독하고 서버가 제공하는 simulation clock을 단일 시간 기준으로 사용한다.
+> 이 문서는 Canonical V3.1 **reference replay UI fixture**를 설명한다. 실제 제품
+> Frontend/Report의 운영 입력은 `ontology_dashboard` Backend가 생성·제공하는 Result
+> Artifact/Evidence이며, 이 패키지의 precomputed prediction을 운영 SoT로 사용하지 않는다.
+
+reference replay 화면은 `api/replay_server.py`의 SSE를 구독하고 서버가 제공하는
+simulation clock을 단일 시간 기준으로 사용한다.
 
 ## 권장 UI
 
@@ -32,6 +37,6 @@ source.addEventListener("simulation", (event) => {
 ## 데이터 의미
 
 - canonical sensor 값은 검증된 CSV 원본이다.
-- prediction과 factor는 파생 모델 산출물이다.
+- prediction과 factor는 V3.1 regression/reference fixture다.
 - optional experiment는 실제 산업 인과 증거가 아니다.
 - UI에서 synthetic / derived / canonical source 표기를 구분한다.

@@ -1,4 +1,9 @@
-"""Read-only API for canonical data, model outputs, and public experiment cases."""
+"""Read-only Source Data Producer/reference-fixture inspection API.
+
+Canonical endpoints expose source/reference data. Prediction and Result
+Artifact endpoints expose preserved migration/regression fixtures only; this
+server is not the ontology_dashboard product runtime API.
+"""
 
 from __future__ import annotations
 
