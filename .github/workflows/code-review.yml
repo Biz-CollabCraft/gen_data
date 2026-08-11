@@ -18,6 +18,9 @@ on:
       runtime_smoke_verified:
         required: true
         type: string
+      release_package_verified:
+        required: true
+        type: string
       workflow_run_id:
         required: true
         type: string
@@ -108,6 +111,7 @@ jobs:
           REPRODUCIBILITY_VERIFIED: ${{ inputs.reproducibility_verified }}
           TRUTH_ISOLATION_VERIFIED: ${{ inputs.truth_isolation_verified }}
           RUNTIME_SMOKE_VERIFIED: ${{ inputs.runtime_smoke_verified }}
+          RELEASE_PACKAGE_VERIFIED: ${{ inputs.release_package_verified }}
           BASE_SHA: ${{ inputs.base_sha }}
           HEAD_SHA: ${{ inputs.head_sha }}
           PR_NUMBER: ${{ inputs.pr_number }}
@@ -127,6 +131,7 @@ jobs:
           reproducibility_verified = os.environ["REPRODUCIBILITY_VERIFIED"].lower() == "true"
           truth_isolation_verified = os.environ["TRUTH_ISOLATION_VERIFIED"].lower() == "true"
           runtime_smoke_verified = os.environ["RUNTIME_SMOKE_VERIFIED"].lower() == "true"
+          release_package_verified = os.environ["RELEASE_PACKAGE_VERIFIED"].lower() == "true"
 
           validation_log = Path("/tmp/source-validation-job.log").read_text(
               encoding="utf-8", errors="replace"
@@ -232,6 +237,7 @@ jobs:
                   reproducibility_verified,
                   truth_isolation_verified,
                   runtime_smoke_verified,
+                  release_package_verified,
               )
           ):
               readiness_ceiling = "Conditional"
@@ -261,6 +267,8 @@ jobs:
                   f"- full 5-day seed reproducibility verified: `{str(reproducibility_verified).lower()}`.",
                   f"- evaluation-truth API isolation verified: `{str(truth_isolation_verified).lower()}`.",
                   f"- Canonical generator + daemon/protocol import smoke verified: `{str(runtime_smoke_verified).lower()}`.",
+                  f"- release ZIP build/extract/layout validation verified: `{str(release_package_verified).lower()}`.",
+                  "- The separate `release-validation` workflow is not evidence for this PR unless explicitly supplied; do not claim it ran merely because the workflow file exists.",
                   "- Authentication uses a gen_data-only GitHub OIDC/WIF provider and a dedicated Vertex AI review service account.",
                   "- The model is Vertex AI `gemini-3.6-flash` through the global endpoint, runtime-confirmed by this workflow when this step succeeds.",
                   "",
@@ -313,6 +321,7 @@ jobs:
                   f"REPRODUCIBILITY_VERIFIED_IN_REVIEW={str(reproducibility_verified).lower()}",
                   f"TRUTH_ISOLATION_VERIFIED_IN_REVIEW={str(truth_isolation_verified).lower()}",
                   f"RUNTIME_SMOKE_VERIFIED_IN_REVIEW={str(runtime_smoke_verified).lower()}",
+                  f"RELEASE_PACKAGE_VERIFIED_IN_REVIEW={str(release_package_verified).lower()}",
                   f"MERGE_READINESS_CEILING={readiness_ceiling}",
                   "",
                   "TRUSTED_BASE_PROJECT_CONTRACT:",

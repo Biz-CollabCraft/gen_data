@@ -14,6 +14,7 @@ jobs:
       reproducibility_verified: ${{ steps.reproducibility.outputs.verified }}
       truth_isolation_verified: ${{ steps.truth_isolation.outputs.verified }}
       runtime_smoke_verified: ${{ steps.runtime_smoke.outputs.verified }}
+      release_package_verified: ${{ steps.release_package.outputs.verified }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -67,6 +68,33 @@ jobs:
       - name: Python compile smoke
         run: python -m compileall -q agent api model protocol scripts *.py
 
+      - name: Validate release package layout
+        id: release_package
+        shell: bash
+        run: |
+          release_dir="$(mktemp -d)"
+          trap 'rm -rf "$release_dir"' EXIT
+          python scripts/build_release.py --output-dir "$release_dir"
+          python - "$release_dir" <<'PY'
+          import sys
+          import zipfile
+          from pathlib import Path
+
+          release_dir = Path(sys.argv[1])
+          archive = release_dir / "predictive_maintenance_canonical_v3_1.zip"
+          checksum = release_dir / "predictive_maintenance_canonical_v3_1.zip.sha256"
+          assert archive.is_file(), archive
+          assert checksum.is_file(), checksum
+          with zipfile.ZipFile(archive) as bundle:
+              names = bundle.namelist()
+          assert names
+          assert all(name.startswith("predictive_maintenance_canonical_v3_1/") for name in names)
+          assert not any("/.github/" in name for name in names)
+          assert not any(name.endswith("/daemon.py") for name in names)
+          print("release_package_layout=ok")
+          PY
+          echo "verified=true" >> "$GITHUB_OUTPUT"
+
       - name: Verify generated validation baselines are current
         run: git diff --exit-code -- canonical/validation
 
@@ -91,6 +119,7 @@ jobs:
       reproducibility_verified: ${{ needs.source-validation.outputs.reproducibility_verified }}
       truth_isolation_verified: ${{ needs.source-validation.outputs.truth_isolation_verified }}
       runtime_smoke_verified: ${{ needs.source-validation.outputs.runtime_smoke_verified }}
+      release_package_verified: ${{ needs.source-validation.outputs.release_package_verified }}
       workflow_run_id: ${{ github.run_id }}
       pr_number: ${{ github.event.pull_request.number }}
       base_sha: ${{ github.event.pull_request.base.sha }}

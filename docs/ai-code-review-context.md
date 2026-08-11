@@ -82,6 +82,7 @@ PR의 선행 `source-validation`은 최소한 다음을 검증한다.
 - full seed reproducibility validation
 - evaluation-truth API isolation
 - Canonical generator + daemon/protocol import smoke
+- release ZIP build/extract/layout validation
 - Python compile
 - validation baseline drift
 - whitespace consistency
