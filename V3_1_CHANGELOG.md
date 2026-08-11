@@ -66,7 +66,7 @@ model       independent-logreg-v3.1
 experiment  relation-reasoning-agent-eval-v3.1
 ```
 
-이번 작업에서는 `predictive_maintenance_canonical_v3_1/`을 별도 배포 폴더로
+초기 V3.1 작업에서는 `predictive_maintenance_canonical_v3_1/`을 별도 배포 폴더로
 생성했다. 신규 MVP 연동과 팀 공유에는 이 V3.1 폴더와 내부 `dist/` ZIP만
 사용한다. 이름이 `predictive_maintenance_canonical_v3/`인 기존 작업 폴더는
 과거 작업 경로와 호환 흔적이 섞여 있을 수 있으므로 V3.0 배포 기준본으로

@@ -6,34 +6,39 @@ Biz-CollabCraft의 제조 예지보전 **Source Data Producer** 저장소입니�
 Canonical V3.1 물리·생성 기준, source/reference/test fixture, seed 기반 재현성과
 source baseline validation까지입니다.
 
-## Week 2 source/reference 기준 패키지
+과거 독립 배포 패키지에서 사용하던 `predictive_maintenance_canonical_v3_1/`
+wrapper는 제거했습니다. 현재는 **저장소 루트 자체가 Canonical V3.1 source/reference
+baseline의 기준 경로**입니다. V3.1은 디렉터리 이름이 아니라 manifest, schema,
+release artifact와 Git tag로 버전 관리합니다.
 
-- [`predictive_maintenance_canonical_v3_1/`](./predictive_maintenance_canonical_v3_1/README.md)
+Canonical V3.1의 상세 물리·데이터 설명은 [`CANONICAL_V3_1.md`](./CANONICAL_V3_1.md),
+현재 운영 소유권은 [`OWNERSHIP_AND_MIGRATION.md`](./OWNERSHIP_AND_MIGRATION.md)를
+따릅니다.
+
+## 저장소 구조
 
 ```text
-predictive_maintenance_canonical_v3_1/
+gen_data/
 ├── canonical/
-│   ├── dataset/             # KEEP: Canonical source observation
-│   ├── evaluation_truth/    # KEEP: 평가/검증 전용 truth
-│   ├── model_outputs/       # REFERENCE FIXTURE: 과거 ML/prediction/result 회귀 기준
-│   └── validation/          # source + reference fixture 검증 기록
-├── model/                   # MIGRATION SOURCE: 과거 통합 ML/prediction 구현
-├── scripts/                 # source 생성/검증 + 명시적 reference fixture 재생성
+│   ├── dataset/             # Canonical source observation
+│   ├── evaluation_truth/    # 평가/검증 전용 truth
+│   ├── model_outputs/       # 과거 ML/prediction/result reference fixture
+│   └── validation/          # source/reference 검증 기록
+├── scripts/                 # 생성·검증·release tooling
+├── api/                     # source/reference fixture read-only API
 ├── agent/                   # evidence/claim 평가 fixture
-├── api/                     # source/reference fixture 확인용 read-only server
 ├── experiments/             # source-side 실험 fixture
-├── OWNERSHIP_AND_MIGRATION.md
+├── model/                   # migration/reference implementation
+├── tests/                   # truth-isolation regression test
+├── docs/                    # real-time daemon prototype/spec
+├── protocol/                # raw protocol envelope/adapters
+├── physics_engine.py        # Canonical generator compatibility facade
+├── CANONICAL_V3_1.md
 ├── SCHEMA.md
-└── RESULT_ARTIFACT_SCHEMA.md
+└── OWNERSHIP_AND_MIGRATION.md
 ```
 
-원본 패키지의 `dist/*.zip`은 같은 데이터의 배포용 중복본이므로 Git 저장소에는
-옮기지 않았습니다. 필요할 때 `scripts/build_release.py`로 다시 생성할 수 있습니다.
-
 ## 저장소 책임과 제품 흐름
-
-PR #8의 저장소 계약과 ontology_dashboard PR #10의 내부 아키텍처에 따라 책임을
-다음과 같이 고정합니다.
 
 ```text
 gen_data
@@ -60,33 +65,57 @@ runtime prediction 또는 Result Artifact/Evidence의 운영 Source of Truth가 
 **reference/regression/migration fixture**입니다. 제품 runtime은 이 파일을 최신
 운영 결과로 직접 소비하지 않습니다.
 
-자세한 KEEP / REFERENCE FIXTURE / MIGRATE 분류는
-[`OWNERSHIP_AND_MIGRATION.md`](./predictive_maintenance_canonical_v3_1/OWNERSHIP_AND_MIGRATION.md)를
-따릅니다.
+## 설치
 
-## 빠른 source 검증
-
-기존 기준 패키지를 변경하지 않고 검증하려면 다음을 실행합니다.
+현재 lock dependency 기준으로 Python 3.12 이상을 사용합니다.
 
 ```bash
-cd predictive_maintenance_canonical_v3_1
-python scripts/validate_package.py
-python scripts/validate_reproducibility.py
+python3 -m venv .venv
+.venv/bin/pip install -r requirements-lock.txt
+```
+
+## 빠른 검증
+
+현재 checkout의 source/reference baseline을 검증합니다.
+
+```bash
+python3 scripts/validate_package.py
+python3 scripts/validate_reproducibility.py --days 5 --scope full
+python3 -m unittest tests/test_dataset_api_truth_isolation.py
 ```
 
 새 source를 생성하는 기본 orchestrator는 Canonical/source와 source-side fixture,
 validation에 집중합니다.
 
 ```bash
-python scripts/run_pipeline.py --days 30 --seed 42
+python3 scripts/run_pipeline.py --days 30 --seed 42
 ```
 
 기존 ML/prediction/result fixture까지 재생성해야 하는 회귀 검증에서만 명시적으로
 다음 옵션을 사용합니다.
 
 ```bash
-python scripts/run_pipeline.py --days 30 --seed 42 --include-reference-model-fixtures
+python3 scripts/run_pipeline.py \
+  --days 30 \
+  --seed 42 \
+  --include-reference-model-fixtures
 ```
+
+## CI 기준
+
+PR과 `main` push에서는 `.github/workflows/source-validation.yml`이 다음 검증을
+필수로 실행합니다.
+
+- Canonical/source 및 reference fixture package validation
+- seed 기반 full reproducibility validation
+- evaluation truth API 비노출 regression test
+- Canonical generator와 daemon/protocol import smoke
+- Python compile 및 whitespace 검증
+- validation output이 checkout의 기준 파일과 일치하는지 확인
+
+Release ZIP 검증은 `.github/workflows/release-validation.yml`에서 tag 또는 수동 실행
+시 수행합니다. 저장소가 평탄화되어도 배포 artifact 이름과 ZIP 내부 루트는 기존과
+동일하게 `predictive_maintenance_canonical_v3_1`을 유지합니다.
 
 ## 데이터 사용 주의
 

@@ -1,10 +1,17 @@
 .DS_Store
+._*
 __pycache__/
 *.py[cod]
 .pytest_cache/
 .venv/
+.audit-venv/
 venv/
 .env
 .env.*
 dist/
 *.zip
+
+# gen_data outputs & state
+output/
+.state/
+setting.config

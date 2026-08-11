@@ -111,7 +111,9 @@ predicted class, status grade, Top-3 factors, recommended action, provenance를
 
 ## 배포 검증
 
-배포본은 영문 루트 `predictive_maintenance_canonical_v3_1/`에서 생성했다.
+이 감사 당시 배포본은 영문 루트 `predictive_maintenance_canonical_v3_1/`에서 생성했다.
+현재 팀 저장소는 평탄화되어 repository root를 source baseline으로 사용하되 release
+ZIP의 package root 이름은 호환성을 위해 그대로 유지한다.
 
 ```text
 dist/predictive_maintenance_canonical_v3_1.zip

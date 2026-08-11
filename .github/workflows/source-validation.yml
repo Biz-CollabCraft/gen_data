@@ -1,0 +1,128 @@
+name: source-validation
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  source-validation:
+    runs-on: ubuntu-latest
+    outputs:
+      package_verified: ${{ steps.package_validation.outputs.verified }}
+      reproducibility_verified: ${{ steps.reproducibility.outputs.verified }}
+      truth_isolation_verified: ${{ steps.truth_isolation.outputs.verified }}
+      runtime_smoke_verified: ${{ steps.runtime_smoke.outputs.verified }}
+      release_package_verified: ${{ steps.release_package.outputs.verified }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-lock.txt
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements-lock.txt
+
+      - name: Validate Canonical source and reference fixtures
+        id: package_validation
+        run: |
+          python scripts/validate_package.py
+          echo "verified=true" >> "$GITHUB_OUTPUT"
+
+      - name: Validate deterministic generation
+        id: reproducibility
+        run: |
+          python scripts/validate_reproducibility.py --days 5 --scope full
+          echo "verified=true" >> "$GITHUB_OUTPUT"
+
+      - name: Validate evaluation-truth isolation
+        id: truth_isolation
+        run: |
+          python -m unittest discover -s tests -p 'test_*.py'
+          echo "verified=true" >> "$GITHUB_OUTPUT"
+
+      - name: Generator and daemon import smoke
+        id: runtime_smoke
+        run: |
+          python - <<'PY'
+          import config
+          import daemon
+          import line_worker
+          import physics_engine
+          import protocol
+          import run
+          import state_tracker
+
+          assert "build_topology" in physics_engine.__all__
+          assert "coupled_cnc_values" in physics_engine.__all__
+          print("canonical_and_daemon_import_smoke=ok")
+          PY
+          echo "verified=true" >> "$GITHUB_OUTPUT"
+
+      - name: Python compile smoke
+        run: python -m compileall -q agent api model protocol scripts *.py
+
+      - name: Validate release package layout
+        id: release_package
+        shell: bash
+        run: |
+          release_dir="$(mktemp -d)"
+          trap 'rm -rf "$release_dir"' EXIT
+          python scripts/build_release.py --output-dir "$release_dir"
+          python - "$release_dir" <<'PY'
+          import sys
+          import zipfile
+          from pathlib import Path
+
+          release_dir = Path(sys.argv[1])
+          archive = release_dir / "predictive_maintenance_canonical_v3_1.zip"
+          checksum = release_dir / "predictive_maintenance_canonical_v3_1.zip.sha256"
+          assert archive.is_file(), archive
+          assert checksum.is_file(), checksum
+          with zipfile.ZipFile(archive) as bundle:
+              names = bundle.namelist()
+          assert names
+          assert all(name.startswith("predictive_maintenance_canonical_v3_1/") for name in names)
+          assert not any("/.github/" in name for name in names)
+          assert not any(name.endswith("/daemon.py") for name in names)
+          print("release_package_layout=ok")
+          PY
+          echo "verified=true" >> "$GITHUB_OUTPUT"
+
+      - name: Verify generated validation baselines are current
+        run: git diff --exit-code -- canonical/validation
+
+      - name: Diff whitespace check
+        run: git diff --check
+
+  review:
+    needs: source-validation
+    if: >-
+      ${{ always() &&
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository }}
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+      pull-requests: write
+    uses: ./.github/workflows/code-review.yml
+    with:
+      validation_result: ${{ needs.source-validation.result }}
+      package_verified: ${{ needs.source-validation.outputs.package_verified }}
+      reproducibility_verified: ${{ needs.source-validation.outputs.reproducibility_verified }}
+      truth_isolation_verified: ${{ needs.source-validation.outputs.truth_isolation_verified }}
+      runtime_smoke_verified: ${{ needs.source-validation.outputs.runtime_smoke_verified }}
+      release_package_verified: ${{ needs.source-validation.outputs.release_package_verified }}
+      workflow_run_id: ${{ github.run_id }}
+      pr_number: ${{ github.event.pull_request.number }}
+      base_sha: ${{ github.event.pull_request.base.sha }}
+      head_sha: ${{ github.event.pull_request.head.sha }}
+      pr_title: ${{ github.event.pull_request.title }}
+      pr_body: ${{ github.event.pull_request.body || '' }}
