@@ -4,7 +4,7 @@
 
 import json
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from protocol.raw_envelope import write_envelope
@@ -92,9 +92,8 @@ class LineWorker:
         runtime = self.runtimes[asset_id]
         episodes = self.episodes_by_asset.get(asset_id, [])
 
-        is_operating_flag, mode_str = operating_state(episodes, observed_at)
+        is_operating_flag, _mode_str = operating_state(episodes, observed_at)
         is_operating = bool(is_operating_flag)
-        ep, ramp = active_cnc_episode(episodes, observed_at) if is_operating else (None, 0.0)
 
         if asset["asset_type"] == "compressor":
             baseline = runtime.baseline
@@ -111,16 +110,137 @@ class LineWorker:
             }
         else:
             # CNC 가공기
+            is_operating, active_episode, protected_failure_window = self._prepare_cnc_runtime(
+                runtime,
+                episodes,
+                observed_at,
+                is_operating,
+                active_cnc_episode,
+            )
             res = coupled_cnc_values(runtime, episodes, observed_at)
+            self._finish_cnc_runtime_cycle(
+                runtime,
+                observed_at,
+                is_operating,
+                active_episode,
+                protected_failure_window,
+            )
             return {
-                "product_type": res.get("product_type", "M"),
+                "product_type": runtime.product_type,
                 "air_temperature_k": round(res.get("air_temperature_k", 300.0), 2),
                 "process_temperature_k": round(res.get("process_temperature_k", 310.0), 2),
                 "rotational_speed_rpm": round(res.get("rotational_speed_rpm", 1500.0), 2),
                 "torque_nm": round(res.get("torque_nm", 40.0), 2),
-                "tool_wear_min": round(res.get("tool_wear_min", 0.0), 2),
+                "tool_wear_min": round(runtime.tool_wear_min, 2),
                 "is_operating": is_operating,
             }
+
+    def _prepare_cnc_runtime(
+        self,
+        runtime,
+        episodes: list,
+        observed_at: datetime,
+        is_operating: bool,
+        active_cnc_episode,
+    ) -> tuple[bool, object | None, bool]:
+        """Canonical generator와 같은 순서로 CNC tick 직전 상태를 준비한다."""
+        from physics_engine import choose_product, clamp
+
+        tick = timedelta(minutes=int(self.config.GEN_DATA_INTERVAL_MINUTES))
+        if runtime.tool_reset_at and observed_at >= runtime.tool_reset_at:
+            runtime.tool_wear_min = runtime.rng.uniform(0.0, 4.0)
+            runtime.tool_reset_at = None
+
+        if runtime.planned_maintenance_until and observed_at < runtime.planned_maintenance_until:
+            is_operating = False
+
+        if runtime.product_started_at is None:
+            runtime.product_started_at = observed_at
+            runtime.product_type = choose_product(runtime)
+
+        active_episode, active_ramp = active_cnc_episode(episodes, observed_at)
+        protected_failure_window = bool(
+            active_episode
+            and str(active_episode.issue["component"]) in {"TWF", "OSF"}
+        )
+        if active_episode and protected_failure_window:
+            signal_strength = float(active_episode.issue["signal_strength"])
+            physical_ramp = clamp(
+                active_ramp * (0.55 + 0.45 * signal_strength), 0.0, 1.0
+            )
+            if active_ramp >= 0.999:
+                physical_ramp = 1.0
+            if str(active_episode.issue["component"]) == "TWF":
+                runtime.tool_wear_min = max(
+                    runtime.tool_wear_min,
+                    180.0 + 40.0 * physical_ramp,
+                )
+                if active_ramp >= 0.999:
+                    runtime.tool_wear_min = max(runtime.tool_wear_min, 220.0)
+            else:
+                runtime.tool_wear_min = max(
+                    runtime.tool_wear_min,
+                    185.0 + 40.0 * physical_ramp,
+                )
+                if active_ramp >= 0.999:
+                    runtime.tool_wear_min = max(runtime.tool_wear_min, 225.0)
+
+        # Failure-recovery tool replacement starts at the same timestamp used
+        # by the Canonical generator. The next tick applies the reset.
+        for episode in episodes:
+            if (
+                observed_at <= episode.failure_at < observed_at + tick
+                and str(episode.issue["component"]) in {"TWF", "OSF"}
+            ):
+                runtime.tool_reset_at = episode.maintenance_started_at
+
+        return is_operating, active_episode, protected_failure_window
+
+    def _finish_cnc_runtime_cycle(
+        self,
+        runtime,
+        observed_at: datetime,
+        is_operating: bool,
+        active_episode,
+        protected_failure_window: bool,
+    ) -> None:
+        """Canonical product-cycle 규칙으로 product/tool-wear 상태를 진행한다."""
+        from physics_engine import (
+            PRODUCT_CUTTING_MINUTES,
+            TOOL_WEAR_EXPOSURE_FACTOR,
+            choose_product,
+        )
+
+        interval_minutes = int(self.config.GEN_DATA_INTERVAL_MINUTES)
+        product_cycle_minutes = int(
+            getattr(self.config, "GEN_DATA_PRODUCT_CYCLE_MINUTES", 20)
+        )
+        product_ticks_target = max(1, product_cycle_minutes // interval_minutes)
+        tick = timedelta(minutes=interval_minutes)
+
+        if is_operating:
+            runtime.product_ticks += 1
+        if not is_operating or runtime.product_ticks < product_ticks_target:
+            return
+
+        cutting_min, cutting_max = PRODUCT_CUTTING_MINUTES[runtime.product_type]
+        cutting_minutes = runtime.rng.uniform(cutting_min, cutting_max)
+        runtime.tool_wear_min += cutting_minutes * TOOL_WEAR_EXPOSURE_FACTOR
+        if active_episode and str(active_episode.issue["component"]) == "TWF":
+            runtime.tool_wear_min = min(runtime.tool_wear_min, 220.0)
+
+        runtime.product_counter += 1
+        runtime.product_started_at = observed_at + tick
+        runtime.product_ticks = 0
+        runtime.product_type = choose_product(runtime)
+
+        if (
+            runtime.tool_wear_min >= runtime.tool_change_threshold_min
+            and not protected_failure_window
+        ):
+            runtime.tool_reset_at = observed_at + tick
+            runtime.planned_maintenance_until = observed_at + tick + timedelta(minutes=30)
+            runtime.tool_change_threshold_min = runtime.rng.uniform(180.0, 235.0)
 
     def _write_processed_layers(self, decoded: dict, observed_at: datetime) -> None:
         """디코딩된 수치를 sensor 레이어 호환 CSV/JSON 파생 산출물로 기록."""

@@ -44,7 +44,7 @@ jobs:
       - name: Validate evaluation-truth isolation
         id: truth_isolation
         run: |
-          python -m unittest tests/test_dataset_api_truth_isolation.py
+          python -m unittest discover -s tests -p 'test_*.py'
           echo "verified=true" >> "$GITHUB_OUTPUT"
 
       - name: Generator and daemon import smoke
