@@ -9,6 +9,11 @@ on:
 jobs:
   source-validation:
     runs-on: ubuntu-latest
+    outputs:
+      package_verified: ${{ steps.package_validation.outputs.verified }}
+      reproducibility_verified: ${{ steps.reproducibility.outputs.verified }}
+      truth_isolation_verified: ${{ steps.truth_isolation.outputs.verified }}
+      runtime_smoke_verified: ${{ steps.runtime_smoke.outputs.verified }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -24,15 +29,25 @@ jobs:
         run: python -m pip install -r requirements-lock.txt
 
       - name: Validate Canonical source and reference fixtures
-        run: python scripts/validate_package.py
+        id: package_validation
+        run: |
+          python scripts/validate_package.py
+          echo "verified=true" >> "$GITHUB_OUTPUT"
 
       - name: Validate deterministic generation
-        run: python scripts/validate_reproducibility.py --days 5 --scope full
+        id: reproducibility
+        run: |
+          python scripts/validate_reproducibility.py --days 5 --scope full
+          echo "verified=true" >> "$GITHUB_OUTPUT"
 
       - name: Validate evaluation-truth isolation
-        run: python -m unittest tests/test_dataset_api_truth_isolation.py
+        id: truth_isolation
+        run: |
+          python -m unittest tests/test_dataset_api_truth_isolation.py
+          echo "verified=true" >> "$GITHUB_OUTPUT"
 
       - name: Generator and daemon import smoke
+        id: runtime_smoke
         run: |
           python - <<'PY'
           import config
@@ -47,6 +62,7 @@ jobs:
           assert "coupled_cnc_values" in physics_engine.__all__
           print("canonical_and_daemon_import_smoke=ok")
           PY
+          echo "verified=true" >> "$GITHUB_OUTPUT"
 
       - name: Python compile smoke
         run: python -m compileall -q agent api model protocol scripts *.py
@@ -56,3 +72,28 @@ jobs:
 
       - name: Diff whitespace check
         run: git diff --check
+
+  review:
+    needs: source-validation
+    if: >-
+      ${{ always() &&
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository }}
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+      pull-requests: write
+    uses: ./.github/workflows/code-review.yml
+    with:
+      validation_result: ${{ needs.source-validation.result }}
+      package_verified: ${{ needs.source-validation.outputs.package_verified }}
+      reproducibility_verified: ${{ needs.source-validation.outputs.reproducibility_verified }}
+      truth_isolation_verified: ${{ needs.source-validation.outputs.truth_isolation_verified }}
+      runtime_smoke_verified: ${{ needs.source-validation.outputs.runtime_smoke_verified }}
+      workflow_run_id: ${{ github.run_id }}
+      pr_number: ${{ github.event.pull_request.number }}
+      base_sha: ${{ github.event.pull_request.base.sha }}
+      head_sha: ${{ github.event.pull_request.head.sha }}
+      pr_title: ${{ github.event.pull_request.title }}
+      pr_body: ${{ github.event.pull_request.body || '' }}
