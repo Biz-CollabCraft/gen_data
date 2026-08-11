@@ -303,7 +303,7 @@ jobs:
                   "10. Is privileged GitHub OIDC restricted to same-repository PRs?",
                   "",
                   "REQUIRED OUTPUT:",
-                  "1. `### Review Scope & Evidence` — base/head, diff truncation, contract source, critical files inspected.",
+                  "1. `### Review Scope & Evidence` — base/head, diff truncation, contract source, critical files inspected. Copy BASE_SHA, HEAD_SHA, and CONTRACT_SOURCE exactly from REVIEW_METADATA; never abbreviate or retype them from memory.",
                   "2. `### Source Contract Matrix` — Contract | Result(PASS/FAIL/NOT PROVEN) | Evidence.",
                   "3. `### Reproducibility & Truth Isolation Matrix` — Contract | Result | Evidence.",
                   "4. `### Actionable Findings` — only real P0/P1/P2/P3 defects with path/symbol, impact, evidence, and concrete fix.",
@@ -380,6 +380,7 @@ jobs:
       - name: Review with Gemini 3.6 Flash on Vertex AI
         env:
           GCP_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+          REVIEW_BASE_SHA: ${{ inputs.base_sha }}
           REVIEW_HEAD_SHA: ${{ inputs.head_sha }}
         run: |
           python3 - <<'PY'
@@ -412,6 +413,7 @@ jobs:
           python3 - <<'PY'
           import json
           import os
+          import re
           from pathlib import Path
 
           payload = json.loads(Path("/tmp/vertex-response.json").read_text(encoding="utf-8"))
@@ -445,6 +447,22 @@ jobs:
           missing = [section for section in required_sections if section not in review]
           if missing:
               raise SystemExit("Gemini review missing sections: " + ", ".join(missing))
+
+          # Base/head identifiers are workflow facts, not model-authored prose.
+          # Replace the model-rendered scope lines deterministically so a
+          # formatting typo can never publish the wrong reviewed commit.
+          review = re.sub(
+              r"(?m)^- \*\*Base SHA\*\*.*$",
+              f"- **Base SHA**: `{os.environ['REVIEW_BASE_SHA']}`",
+              review,
+              count=1,
+          )
+          review = re.sub(
+              r"(?m)^- \*\*Head SHA\*\*.*$",
+              f"- **Head SHA**: `{os.environ['REVIEW_HEAD_SHA']}`",
+              review,
+              count=1,
+          )
 
           ceiling = policy["merge_readiness_ceiling"]
           prefix, marker, merge_section = review.partition("### Merge Readiness")
