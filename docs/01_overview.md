@@ -2,7 +2,7 @@
 
 ## 정의
 
-`gen_data`는 Canonical V3.1의 물리 계산 로직(AI4I 물리 계약: air/process 온도 결합, torque/rpm 역산, PWF/HDF/OSF/TWF/RNF 고장 조건)을 **재사용**하여, 압축기·CNC 자산의 센서 데이터를 **실시간으로, 산업용 통신 프로토콜(Modbus TCP 등) 캡처 형태로, 라인 단위 디렉터리 구조로** 계속 생성해내는 데몬이다. 팀 저장소에서 Canonical 기준본의 실제 경로는 `predictive_maintenance_canonical_v3_1/`이다.
+`gen_data`는 Canonical V3.1의 물리 계산 로직(AI4I 물리 계약: air/process 온도 결합, torque/rpm 역산, PWF/HDF/OSF/TWF/RNF 고장 조건)을 **재사용**하여, 압축기·CNC 자산의 센서 데이터를 **실시간으로, 산업용 통신 프로토콜(Modbus TCP 등) 캡처 형태로, 라인 단위 디렉터리 구조로** 계속 생성해내는 데몬이다. 팀 저장소에서는 Canonical 기준본이 별도 wrapper 폴더가 아니라 **저장소 루트에 직접 수렴**한다.
 
 ## 저장소 구조
 
@@ -68,7 +68,7 @@ GEN_DATA_OUTPUT_DIR/raw/                     Extraction Agent가 .raw 스트림�
 
 `gen_data`는 `ontology_dashboard/data/sensor`·`ontology_dashboard/data/result` 경로를 알지도, 쓰지도 않는다 — 이 경로들은 전적으로 `ontology_dashboard` 쪽 책임이다. 현재 `gen_data` 구현은 `GEN_DATA_OUTPUT_DIR/raw/`에 캡처를 저장하고, 디코딩 smoke/관찰용 파생 로그를 `GEN_DATA_OUTPUT_DIR/sensor/`에도 기록한다. 이 파생 로그는 `ontology_dashboard/data/sensor/`와는 별도 경로이며 제품 입력 계약을 대신하지 않는다.
 
-> **참고 — 기존 v3.1 릴리스 출처와 팀 기준 경로의 구분**: 과거 개인 저장소의 배포본 이름에는 `predictive_maintenance_canonical_v3.1` 표기가 사용되었다. 현재 팀 저장소에서 이관되는 실제 filesystem 기준 경로는 `predictive_maintenance_canonical_v3_1/`이다. 버전명 `V3.1`과 실제 디렉터리 이름을 구분한다.
+> **참고 — 기존 v3.1 릴리스 출처와 팀 기준 경로의 구분**: 과거 개인 저장소의 배포본 이름에는 `predictive_maintenance_canonical_v3.1` 표기가 사용되었다. 현재 팀 저장소의 filesystem 기준 경로는 repository root이며, `predictive_maintenance_canonical_v3_1` 이름은 ZIP release artifact 식별자로 유지한다.
 
 ## v3.1 데이터 규모 (공식 릴리스 기준)
 
@@ -98,7 +98,7 @@ predictive_maintenance_canonical (v2 → v3 → v3.1)
 gen_data (v3.1의 물리 계약을 실시간 프로토콜 캡처 형태로 재구성) ← 본 프로젝트
 ```
 
-**즉 초기 시뮬레이터는 별도로 존재하는 파일이 아니라, 개선을 거쳐 Canonical V3.1로 완성된 것이다.** 팀 저장소에서의 실제 경로는 `predictive_maintenance_canonical_v3_1/`이며, `gen_data`의 `physics_engine.py`는 이 기준본의 `scripts/generate_canonical_dataset.py`를 호환 facade로 재사용한다. PR #1 단독 checkout에서는 `GEN_DATA_CANONICAL_ROOT`로 외부 기준본을 지정할 수 있다.
+**즉 초기 시뮬레이터는 별도로 존재하는 파일이 아니라, 개선을 거쳐 Canonical V3.1로 완성된 것이다.** 팀 저장소에서는 repository root의 `scripts/generate_canonical_dataset.py`가 기준 구현이며, `physics_engine.py`는 이를 호환 facade로 재사용한다. 외부 baseline과 비교해야 할 때만 `GEN_DATA_CANONICAL_ROOT`를 지정한다.
 
 `gen_data`는 "실측 데이터를 흉내 내는 1차 생성기"가 아니라, **이미 시뮬레이터인 v3.1을 실시간 스트리밍 형태로 재구성한 3차 파생물**이라는 정체성을 문서·코드 전체에서 유지한다. 어떤 문서·발표 자료에서도 "실제 공장 데이터"라고 표현하지 않는다.
 
@@ -118,7 +118,7 @@ gen_data (v3.1의 물리 계약을 실시간 프로토콜 캡처 형태로 재�
 
 ## 공식 배포본 연계 정보
 
-Canonical V3.1의 기존 배포본은 GitHub 저장소 **`oosuhada/agentic-ontology-dashboard`**에 정식 릴리스로 태깅되어 있었다. 현재 팀 기준 filesystem 경로는 PR #2의 `predictive_maintenance_canonical_v3_1/`이다.
+Canonical V3.1의 기존 배포본은 GitHub 저장소 **`oosuhada/agentic-ontology-dashboard`**에 정식 릴리스로 태깅되어 있었다. 현재 팀 기준 filesystem 경로는 `Biz-CollabCraft/gen_data` repository root다.
 
 ```
 태그: predictive-maintenance-canonical-v3.1-20260805
@@ -142,7 +142,7 @@ RNF: condition-independent random failure
 패키지 구조 자체는 동일하며, 팀 저장소에서의 실제 루트 이름만 underscore 표기를 사용한다. `gen_data/physics_engine.py`가 참조하는 `scripts/` 경로는 다음 구조의 일부다:
 
 ```
-predictive_maintenance_canonical_v3_1/
+gen_data/
 ├── canonical/{dataset, evaluation_truth, model_outputs, validation}/
 ├── experiments/connected_air_supply/
 ├── model/ agent/ api/ scripts/ dashboard/

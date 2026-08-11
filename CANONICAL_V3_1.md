@@ -5,9 +5,11 @@ positive/negative 평가 자산, source replay 도구를 제공한다. 과거 V3
 시간별 prediction/Result Artifact도 회귀·호환성 검증을 위해 **reference fixture**로
 보존한다.
 
-신규 source 연동과 팀 공유의 기준 경로는
-`predictive_maintenance_canonical_v3_1/`이다. 기존 이름이 V3인 작업 폴더를
-V3.0 기준본으로 간주하거나 신규 ingestion 입력으로 사용하지 않는다.
+신규 source 연동과 팀 공유의 기준 경로는 **`gen_data` 저장소 루트**다.
+과거 독립 배포 패키지에서 사용하던 `predictive_maintenance_canonical_v3_1/`
+wrapper는 저장소 구조에서는 제거했으며, 해당 이름은 release artifact 식별자로만
+유지한다. 기존 이름이 V3인 작업 폴더를 V3.0 기준본으로 간주하거나 신규 ingestion
+입력으로 사용하지 않는다.
 
 현재 운영 책임은 [`OWNERSHIP_AND_MIGRATION.md`](./OWNERSHIP_AND_MIGRATION.md)를
 따른다.
@@ -104,7 +106,7 @@ reset 없이 끝난 tool replacement        0
 ## 폴더 구조
 
 ```text
-predictive_maintenance_canonical_v3_1/
+gen_data/
 ├── canonical/
 │   ├── dataset/
 │   ├── evaluation_truth/
@@ -131,10 +133,9 @@ predictive_maintenance_canonical_v3_1/
 
 ## 설치
 
-Python 3.11 이상을 권장한다.
+현재 lock dependency 기준으로 Python 3.12 이상을 사용한다.
 
 ```bash
-cd predictive_maintenance_canonical_v3_1
 python3 -m venv .venv
 .venv/bin/pip install -r requirements-lock.txt
 ```

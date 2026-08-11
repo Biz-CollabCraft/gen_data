@@ -6,13 +6,13 @@ import os
 import sys
 from pathlib import Path
 
-# Canonical V3.1은 PR #2가 merge되면 이 저장소 하위에 위치한다. PR #1만
-# checkout한 경우에는 GEN_DATA_CANONICAL_ROOT로 외부 기준본을 명시할 수 있다.
+# Canonical V3.1 source/reference baseline은 저장소 루트에 직접 수렴한다.
+# 외부 기준본을 비교해야 하는 경우에만 GEN_DATA_CANONICAL_ROOT로 명시한다.
 _configured_root = os.environ.get("GEN_DATA_CANONICAL_ROOT")
 _canonical_root = (
     Path(_configured_root).expanduser()
     if _configured_root
-    else Path(__file__).resolve().parent / "predictive_maintenance_canonical_v3_1"
+    else Path(__file__).resolve().parent
 )
 V3_1_SCRIPTS = _canonical_root / "scripts"
 if str(V3_1_SCRIPTS) not in sys.path:
@@ -39,8 +39,8 @@ except ModuleNotFoundError as exc:
     if exc.name != "generate_canonical_dataset":
         raise
     raise ModuleNotFoundError(
-        "Canonical V3.1 generator is unavailable. Merge/provide "
-        "predictive_maintenance_canonical_v3_1 or set GEN_DATA_CANONICAL_ROOT."
+        "Canonical V3.1 generator is unavailable under the repository root; "
+        "set GEN_DATA_CANONICAL_ROOT only when validating an external baseline."
     ) from exc
 
 __all__ = [

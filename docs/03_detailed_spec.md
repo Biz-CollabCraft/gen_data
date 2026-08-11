@@ -86,7 +86,7 @@ prediction timeline ──▶ result artifacts
 | `compressor_failure_truth.csv` | 20 | 압력·베어링·구동·전기 고장 정답 |
 | `cnc_failure_truth.csv` | 56 | PWF 14, HDF 21, OSF 11, TWF 6, RNF 4 |
 
-**Derived model outputs** (v3.1 자체 배치 파이프라인의 산출물 — `gen_data`는 이 계층을 만들지 않는다. 예측/모델링은 전적으로 `ontology_dashboard` 쪽 책임이라는 §"저장소 구조" 원칙과 일치):
+**Derived model outputs** (V3.1 이관 당시 생성된 compatibility/reference/regression/migration fixture):
 
 | 파일 | 행 수 | 내용 |
 |---|---:|---|
@@ -95,7 +95,13 @@ prediction timeline ──▶ result artifacts
 | `prediction_timeline.jsonl` | 68,208 | Historical Replay용 시간별 위험도 |
 | `result_artifact.jsonl` | 100 | Dashboard·Agent·Report 공통 결과 계약 |
 
-gen_data가 만드는 실시간 `.raw` 및 Layer 1/2 산출물은 위 표의 **Canonical source 계층에만 대응**한다. Evaluation truth와 Derived model outputs는 각각 "gen_data가 노출하면 안 되는 것"과 "gen_data가 만들 필요가 없는 것(ontology_dashboard의 몫)"으로 명확히 구분된다.
+실시간 `gen_data` daemon은 운영 Model/Prediction/Result Artifact를 생성하지 않는다.
+위 Derived model outputs는 저장소에 보존된 **reference/regression/migration fixture**이며,
+운영 Model Artifact producer는 `ontology_dashboard/systems/generator`, 운영 Product
+Result Artifact/Evidence producer는 `ontology_dashboard/systems/backend/diagnosis`다.
+세부 KEEP / REFERENCE FIXTURE / MIGRATE 분류는 루트
+[`OWNERSHIP_AND_MIGRATION.md`](../OWNERSHIP_AND_MIGRATION.md)를 따른다. Evaluation truth는
+계속 평가·검증 전용이며 제품 Dashboard/API/LLM 입력에 노출하지 않는다.
 
 ## 3. `config.py`
 
@@ -116,9 +122,9 @@ gen_data가 만드는 실시간 `.raw` 및 Layer 1/2 산출물은 위 표의 **C
 ## 4. `physics_engine.py` — Canonical V3.1 호환 facade
 
 현재 구현은 v3.1의 검증된 물리 함수와 타입을 중복 복사하지 않고
-`scripts/generate_canonical_dataset.py`에서 import해 facade로 노출한다. PR #2 merge 후에는
-저장소 하위 `predictive_maintenance_canonical_v3_1/`가 기본 기준본이다. PR #1 단독
-checkout에서는 `GEN_DATA_CANONICAL_ROOT`로 외부 Canonical V3.1 루트를 지정한다.
+repository root의 `scripts/generate_canonical_dataset.py`에서 import해 facade로 노출한다.
+저장소 루트 자체가 기본 Canonical V3.1 기준본이며, 외부 baseline을 비교해야 하는
+경우에만 `GEN_DATA_CANONICAL_ROOT`로 별도 루트를 지정한다.
 
 아래 재구성 코드와 `test_physics_parity.py`는 초기 대안 설계를 보존한 참고 예시이며
 **현재 runtime 구현이 아니다**. 현재 runtime은 위에서 설명한 import facade 방식이다.
@@ -415,21 +421,21 @@ if __name__ == "__main__":
 
 ```bash
 cd /path/to/gen_data
-# PR #1 단독 checkout에서 Canonical 기준본이 저장소 밖에 있으면 선택적으로 지정
-export GEN_DATA_CANONICAL_ROOT=/path/to/predictive_maintenance_canonical_v3_1
+# 외부 Canonical baseline과 비교해야 할 때만 선택적으로 지정
+export GEN_DATA_CANONICAL_ROOT=/path/to/external/gen_data
 python run.py
 ```
 
 기동 로그에는 `OUTPUT_DIR_SOURCE`, `SETTINGS_SOURCE`, `SEED_SOURCE`가 함께 표시된다.
-PR #2 merge 후 Canonical 폴더가 저장소 하위에 있으면 `GEN_DATA_CANONICAL_ROOT`는
-지정하지 않아도 된다.
+기본값은 현재 repository root이므로 일반 실행에서는 `GEN_DATA_CANONICAL_ROOT`를
+지정하지 않는다.
 
 ## 10. Acceptance Criteria (통합)
 
 | # | 기준 |
 |---|---|
 | 1 | `GEN_DATA_OUTPUT_DIR` 미설정/빈 값이어도 저장소 루트 `output/`로 폴백하고 `OUTPUT_DIR_SOURCE`가 남음 |
-| 2 | Canonical V3.1 기준본이 저장소 하위에 있거나 `GEN_DATA_CANONICAL_ROOT`로 지정되면 `physics_engine.py` facade가 정상 import됨 |
+| 2 | repository root의 Canonical V3.1 기준본 또는 명시적 `GEN_DATA_CANONICAL_ROOT`를 사용해 `physics_engine.py` facade가 정상 import됨 |
 | 3 | 라인 폴더가 자산 그룹 수(최대 20)만큼 생성, 각 라인 폴더에 `line_unit_map.json` 자동 생성 |
 | 4 | 같은 tick의 모든 라인 `.raw` 파일명(`{HHMMSS}.raw`)이 정확히 동일한 시각으로 생성 |
 | 5 | 전 라인 처리 시간이 "라인 수 × 단일 라인 처리시간"이 아니라 "단일 라인 처리시간"에 근접 (병렬성 검증) |

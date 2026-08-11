@@ -1,0 +1,58 @@
+name: release-validation
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  canonical-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-lock.txt
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements-lock.txt
+
+      - name: Validate full deterministic generation
+        run: python scripts/validate_reproducibility.py --days 5 --scope full
+
+      - name: Build validated Canonical V3.1 release
+        run: python scripts/build_release.py
+
+      - name: Verify release naming and ZIP root
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import zipfile
+
+          package = "predictive_maintenance_canonical_v3_1"
+          archive = Path("dist") / f"{package}.zip"
+          checksum = Path("dist") / f"{package}.zip.sha256"
+          assert archive.is_file(), archive
+          assert checksum.is_file(), checksum
+          with zipfile.ZipFile(archive) as bundle:
+              names = bundle.namelist()
+              assert names
+              assert all(name.startswith(f"{package}/") for name in names)
+              assert f"{package}/README.md" in names
+              assert not any(name.startswith(f"{package}/.github/") for name in names)
+          print("release_layout=ok")
+          PY
+
+      - name: Upload validated release artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: predictive_maintenance_canonical_v3_1
+          path: |
+            dist/predictive_maintenance_canonical_v3_1.zip
+            dist/predictive_maintenance_canonical_v3_1.zip.sha256

@@ -42,7 +42,7 @@ gen_data/
 | 파일 | 책임 |
 |---|---|
 | `config.py` | `GEN_DATA_OUTPUT_DIR`은 `.env`에 있으면 그 값을, 없거나 빈 값이면 기본 경로로 자동 폴백(에러 아님). 나머지 생성 설정(seed·interval·speed·protocol 등)은 `setting.config` 파일이 있으면 그 값을, 없으면 하드코딩된 기본값을 사용. 두 경우 모두 어떤 값을 썼는지(`OUTPUT_DIR_SOURCE`, `SETTINGS_SOURCE`)를 기동 로그에 남김 |
-| `physics_engine.py` | Canonical V3.1 `scripts/generate_canonical_dataset.py`를 호환 facade로 import해 검증된 물리 함수와 타입을 재사용한다. PR #2 merge 후에는 저장소 하위 `predictive_maintenance_canonical_v3_1/`를 사용하며, PR #1 단독 검증 시 `GEN_DATA_CANONICAL_ROOT`로 외부 기준본을 지정할 수 있다. |
+| `physics_engine.py` | repository root의 Canonical V3.1 `scripts/generate_canonical_dataset.py`를 호환 facade로 import해 검증된 물리 함수와 타입을 재사용한다. 외부 baseline 비교가 필요할 때만 `GEN_DATA_CANONICAL_ROOT`를 지정한다. |
 | `state_tracker.py` | 전역 `last_tick` 하나만 저장/조회 |
 | `protocol/base_protocol.py` | `encode_response()`/`decode_response()` 인터페이스 정의 |
 | `protocol/modbus_adapter.py` | 값 → Modbus TCP MBAP+PDU 프레임, 그 역 |
