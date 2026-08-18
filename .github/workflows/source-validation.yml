@@ -58,10 +58,12 @@ jobs:
           import physics_engine
           import protocol
           import run
+          import runtime_overlay
           import state_tracker
 
           assert "build_topology" in physics_engine.__all__
           assert "coupled_cnc_values" in physics_engine.__all__
+          assert runtime_overlay.SOURCE_KIND == "maintenance_replay_overlay"
           print("canonical_and_daemon_import_smoke=ok")
           PY
           echo "verified=true" >> "$GITHUB_OUTPUT"

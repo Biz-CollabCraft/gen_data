@@ -27,7 +27,8 @@ class LineWorker:
         runtimes: dict,
         episodes_by_asset: dict,
         config,
-        default_adapter
+        default_adapter,
+        observation_allowed=None,
     ):
         self.site_id = str(site_id)
         self.cell_id = str(cell_id)
@@ -35,6 +36,7 @@ class LineWorker:
         self.runtimes = runtimes
         self.episodes_by_asset = episodes_by_asset
         self.config = config
+        self.observation_allowed = observation_allowed
 
         self.line_dir = Path(config.GEN_DATA_OUTPUT_DIR) / "raw" / f"fac{self.site_id}" / f"line{self.cell_id}"
         self.line_dir.mkdir(parents=True, exist_ok=True)
@@ -70,7 +72,12 @@ class LineWorker:
 
     def run_one_cycle(self, observed_at: datetime) -> None:
         """지정된 관측 시각(observed_at) 1개 틱에 대한 전 자산 물리 계산 및 아펜드 기입."""
-        raw_values = {a["asset_id"]: self._compute_physics_value(a, observed_at) for a in self.assets}
+        raw_values = {
+            a["asset_id"]: self._compute_physics_value(a, observed_at)
+            for a in self.assets
+            if self.observation_allowed is None
+            or self.observation_allowed(a["asset_id"], observed_at)
+        }
         frame = self.adapter.encode_response(self.unit_map, raw_values)
 
         raw_path = self._current_raw_path(observed_at)

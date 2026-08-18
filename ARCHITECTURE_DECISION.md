@@ -74,6 +74,26 @@ Optional agent experiment
 - 정비 중 행과 데이터 종료 직전 prediction horizon은 학습·평가에서 제외한다.
 - 모델 계약은 dataset manifest 및 입력·출력 checksum과 결합한다.
 
+### Closed-loop Runtime Overlay 예외 경로
+
+위 Canonical Replay 정책은 계속 read-only 기준이다. 정비 결과를 시연에 반영해야 할
+때는 Canonical Replay 자체를 변경하지 않고 별도의 opt-in Runtime Overlay를 사용한다.
+
+- `maintenance.started` 이후 대상 설비의 Canonical/live Observation만 중단한다.
+- 다른 설비는 기존 global Replay clock을 계속 따른다.
+- 정비 완료 `state_patch`는 Canonical Runtime/CSV가 아니라 복제된 Overlay Snapshot에만
+  적용한다.
+- `TOOL_REPLACEMENT`의 MVP patch는 `tool_wear_min reset -> 0 min`만 허용한다.
+- `maintenance.replay_requested` 이후 대상 설비 branch clock만 현재 source-runtime
+  virtual time까지 sleep 없이 catch-up한다.
+- catch-up 이후에도 해당 설비는 Overlay branch에서 정상 tick cadence를 이어간다.
+- Overlay Observation은 `source_kind=maintenance_replay_overlay`, maintenance/branch
+  lineage를 포함한 append-only 별도 저장 경로에 쓴다.
+- `gen_data`는 Model Artifact 또는 `history_requirement`을 소비하지 않는다. 새 Observation
+  배치가 Backend에서 소비 가능하다는 `runtime_overlay.observations.available`만 알린다.
+- inference-ready 판정, `warming_up/history_insufficient`, Prediction 및 Product
+  Result/Evidence 생성은 Backend Diagnosis가 소유한다.
+
 ## 에이전트 정책
 
 에이전트는 센서 변화, 시간적 선후관계, 자산 관계, 정비 이력을 조합해 원인 **후보**를 제시한다. `hidden_truth/`는 에이전트에 제공하지 않는다. 평가기는 후보 자산, relation traversal, 증거 범위, 인과 표현의 신중함을 채점한다. Sensor evidence와 maintenance evidence를 구분하며, 정비 근거는 canonical maintenance row와 정확히 일치해야 한다.

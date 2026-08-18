@@ -33,6 +33,7 @@ gen_data/
 ├── docs/                    # real-time daemon prototype/spec
 ├── protocol/                # raw protocol envelope/adapters
 ├── physics_engine.py        # Canonical generator compatibility facade
+├── runtime_overlay.py       # 정비 대상 설비 전용 Runtime Overlay branch
 ├── CANONICAL_V3_1.md
 ├── SCHEMA.md
 └── OWNERSHIP_AND_MIGRATION.md
@@ -59,6 +60,20 @@ Backend API / Frontend / Report
 
 따라서 `gen_data`는 제품의 Semantic/ML pipeline, versioned Model Artifact,
 runtime prediction 또는 Result Artifact/Evidence의 운영 Source of Truth가 아닙니다.
+
+Closed-loop 정비 후 시연에서는 이 책임을 뒤집지 않고 **대상 설비만** opt-in Runtime
+Overlay로 분기합니다. `runtime_overlay.py`는 정비 시점의 Runtime Snapshot을 복제하고,
+Canonical/global clock을 변경하지 않은 채 해당 설비 branch clock만 Fast-forward하여
+`source_kind="maintenance_replay_overlay"` Observation을 append-only로 생성합니다.
+`gen_data`는 `history_requirement.json`을 읽거나 inference-ready 여부를 판단하지 않으며,
+Backend가 소비 가능한 새 배치가 생겼다는 `runtime_overlay.observations.available`만
+발행합니다. Model Artifact 기반 history sufficiency와 Runtime Prediction은 계속
+`ontology_dashboard/systems/backend/diagnosis` 책임입니다.
+
+로컬/Mac mini 통합에서는 `GEN_DATA_RUNTIME_OVERLAY_EVENT_FILE`을 지정하면 JSONL
+maintenance event inbox를 opt-in으로 소비합니다. 이 파일 transport는 최종 시스템 간
+Schema를 대신하지 않는 demo adapter이며, 미지정 시 기존 Canonical/live daemon 동작은
+완전히 유지됩니다.
 
 `canonical/model_outputs/*`, `result_artifact_sample.json`,
 `model/prediction_pipeline.py`는 V3.1 이관 당시의 호환성·회귀 검증을 위해 남기는

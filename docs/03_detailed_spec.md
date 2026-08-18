@@ -11,6 +11,7 @@
 ```env
 GEN_DATA_OUTPUT_DIR=/path/to/gen_data/output
 GEN_DATA_SETTING_CONFIG_PATH=/path/to/gen_data/setting.config
+GEN_DATA_RUNTIME_OVERLAY_EVENT_FILE=/path/to/runtime-overlay-maintenance-events.jsonl
 ```
 
 | 변수 | 의미 | 비고 |
@@ -18,6 +19,7 @@ GEN_DATA_SETTING_CONFIG_PATH=/path/to/gen_data/setting.config
 | `GEN_DATA_OUTPUT_DIR` | `.raw` 및 파생 산출물 저장 루트 | **미설정 또는 빈 값이면 저장소 루트의 `output/`로 자동 폴백** — 에러로 중단하지 않음. `OUTPUT_DIR_SOURCE`로 출처를 남긴다. |
 | `GEN_DATA_SETTING_CONFIG_PATH` | 생성 설정 파일(`setting.config`)의 경로 | 미설정 또는 그 경로에 파일이 없으면 하드코딩된 기본값으로 동작 (에러 아님) |
 | `GEN_DATA_STATE_PATH` | 마지막 완료 tick 체크포인트 JSON 경로 | 미설정 시 저장소 `.state/gen_data_state.json`. 운영에서는 데이터 볼륨 경로를 지정해 checkout 교체와 상태를 분리할 수 있음 |
+| `GEN_DATA_RUNTIME_OVERLAY_EVENT_FILE` | Closed-loop maintenance event JSONL inbox | 선택값. 미설정 시 Runtime Overlay가 완전히 비활성화되어 기존 Canonical/live daemon만 동작. 현재는 로컬/Mac mini demo adapter이며 최종 cross-repo transport 계약은 아님 |
 | `GEN_DATA_API_HOST` / `GEN_DATA_API_PORT` | 후속 계획인 `server.py`용 설정 | 현재 PR의 실행 코드에서는 아직 사용하지 않음 |
 | `GEN_DATA_SEED` | 시뮬레이션 난수 시드 값 (선택적 최우선 덮어쓰기) | `.env`/환경변수에 설정 시 최우선 적용. 정수(예: `42`) 지정 시 고정 시드, `"random"`, `"-1"`, `"none"` 지정 시 프로세스 시작 때 시스템 엔트로피로 새 정수 seed를 한 번 생성. 미지정 시 `setting.config` ➔ 기본값 `42` |
 
@@ -117,9 +119,65 @@ Result Artifact/Evidence producer는 `ontology_dashboard/systems/backend/diagnos
 - `random`, `-1`, `none`은 프로세스 시작 때 시스템 엔트로피로 새 정수 seed를 한 번
   생성한다. 한 실행 안에서는 모든 컴포넌트가 같은 정수 seed를 공유한다.
 - `OUTPUT_DIR_SOURCE`, `SETTINGS_SOURCE`, `SEED_SOURCE`를 기동 로그에 노출한다.
+- `GEN_DATA_RUNTIME_OVERLAY_EVENT_FILE`은 별도 opt-in adapter다. 설정되지 않으면
+  Canonical/live 경로에 어떤 분기도 추가하지 않는다.
 
 `GEN_DATA_API_HOST`/`GEN_DATA_API_PORT`는 §8-1의 후속 제어 API가 구현될 때 추가할
 설정이며 현재 `config.py`에는 존재하지 않는다.
+
+### 3.1 Closed-loop Runtime Overlay 실행 계약
+
+현재 구현은 `runtime_overlay.py`에서 다음 세 maintenance event를 받는다.
+
+| event | gen_data 처리 |
+|---|---|
+| `maintenance.started` | 대상 설비 Runtime Snapshot을 복제하고 해당 시각 이후 Canonical/live Observation을 pause |
+| `maintenance.completed` | `maintenance_event_id`, `maintenance_completed_at`, typed `state_patch` 검증 후 Overlay Snapshot에만 effect 적용 |
+| `maintenance.replay_requested` | `restart_at`부터 branch-local virtual clock을 시작하고 global source clock까지 Fast-forward |
+
+MVP `TOOL_REPLACEMENT`는 다음 patch만 허용한다.
+
+```json
+{
+  "tool_wear_min": {
+    "operation": "reset",
+    "value": 0,
+    "unit": "min"
+  }
+}
+```
+
+Overlay는 `idempotency_key` 재전송을 동일 결과로 처리하고 같은 key의 다른 payload를
+conflict로 거절한다. `state_version`은 동일 maintenance lifecycle에서 단조 증가해야 하며
+낮은 version은 stale event로 거절한다. maintenance gap에는 대상 설비 정상 Observation을
+생성하지 않고 timeout만으로 자동 재개하지 않는다.
+
+생성 Observation은 `GEN_DATA_OUTPUT_DIR/runtime_overlay/` 아래에 append-only JSONL로
+기록하며 최소 다음 lineage를 포함한다.
+
+```text
+source_kind=maintenance_replay_overlay
+simulation_session_id
+overlay_branch_id
+maintenance_action_id
+maintenance_event_id
+history_segment_id
+state_version
+observed_at
+generated_at
+observation_sha256
+```
+
+새 배치가 생성되면 `observations_available.jsonl`에
+`runtime_overlay.observations.available`을 append한다. 이름 그대로 **Backend에서 읽을 수
+있는 Observation이 생겼음**만 의미하며 inference-ready를 의미하지 않는다. payload에는
+`required_rows`나 `history_requirement`을 넣지 않는다. Backend Diagnosis가 자신의
+versioned Model Artifact를 사용해 `warming_up/history_insufficient/ready`와 최초 Prediction
+시점을 판정한다.
+
+현재 JSONL inbox/outbox는 실제 branch/state/physics 구현을 검증하기 위한 local adapter다.
+최종 event/Observation field requiredness와 transport는 `ontology_dashboard`의 versioned
+JSON Schema가 확정되면 그 계약으로 교체·검증한다.
 
 ## 4. `physics_engine.py` — Canonical V3.1 호환 facade
 

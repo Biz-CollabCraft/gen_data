@@ -18,6 +18,7 @@ gen_data/
 │   └── raw_envelope.py           # 프로토콜 무관 캡처 envelope
 ├── line_worker.py                # 라인 1개의 "한 tick 처리" 단위
 ├── daemon.py                     # 공유 타임라인 루프 + 라인 병렬 실행
+├── runtime_overlay.py            # 대상 설비 Snapshot/branch-local clock/append-only Overlay
 ├── daemon_state.py                # [후속 계획] server.py ↔ daemon.py 간 공유 상태
 ├── server.py                      # [후속 계획] FastAPI 제어 서버
 ├── run.py                         # 현재 CLI 진입점 — daemon.run_forever() 실행
@@ -28,6 +29,11 @@ gen_data/
 ├── .state/
 │   └── gen_data_state.json       # {"last_tick": "..."}
 └── output/
+    ├── runtime_overlay/
+    │   ├── runtime_overlay_state.json        # Overlay branch/checkpoint
+    │   ├── observations_available.jsonl      # Backend adapter용 source-side availability outbox
+    │   └── {simulation_session_id}/
+    │       └── {overlay_branch_id}.jsonl     # append-only Overlay Observation
     └── raw/
         └── fac{site_id}/                    # 예: facS01
             └── line{cell_id}/               # 예: lineL01
@@ -50,6 +56,7 @@ gen_data/
 | `protocol/raw_envelope.py` | 프레임 앞에 캡처 시각+프로토콜 식별자를 붙여 `.raw`에 append |
 | `line_worker.py` | 라인 하나의 자산들에 대해 "한 tick분" 물리 계산 → 인코딩 → 캡처 → 가공까지 수행 |
 | `daemon.py` | 전체 자산을 라인 단위로 묶고, 공유 타임라인으로 매 tick마다 전 라인을 병렬 실행. 현재 구현은 고정 interval/speed와 종료 signal을 사용한다. |
+| `runtime_overlay.py` | Closed-loop maintenance event를 검증하고 대상 설비 Runtime Snapshot을 분리한다. `idempotency_key`/`state_version`을 검증하고 branch-local clock으로 Overlay Observation을 append-only 생성·checkpoint한다. Model/history sufficiency는 판단하지 않는다. |
 | `daemon_state.py` | **후속 계획(현재 파일 없음)** — 제어 API 도입 시 스레드 안전 공유 상태 보관 |
 | `server.py` | **후속 계획(현재 파일 없음)** — `/api/status`, `/api/cycle/next`, `/api/config` 제어 API 설계 |
 | `run.py` | 현재는 `daemon.run_forever()`를 호출하는 CLI 진입점이다. 제어 API 동시 기동은 후속 계획이다. |
@@ -70,6 +77,33 @@ line_worker.run_one_cycle(current_time)  ×  라인 개수 (병렬)
 daemon.py: state_tracker.set_global_last_tick() → 다음 tick으로 진행
 ```
 
+### Runtime Overlay opt-in 흐름
+
+`GEN_DATA_RUNTIME_OVERLAY_EVENT_FILE`이 없으면 위 기존 흐름만 동작한다. 값이 있으면
+daemon tick 시작 전에 JSONL maintenance inbox를 읽고, 대상 설비에 대해서만 다음 분기를
+추가한다.
+
+```text
+global current_time ───────────────────────────────→ 다른 설비 Canonical/live tick
+        │
+        └─ target equipment maintenance.started
+             ├─ Canonical/live output pause
+             ├─ maintenance.completed → cloned Snapshot에 typed state_patch
+             └─ maintenance.replay_requested
+                    ↓
+                 restart_at
+                    ↓ no wall-clock sleep
+                 target branch clock catch-up to current_time
+                    ↓
+                 maintenance_replay_overlay Observation
+                    ↓
+                 runtime_overlay.observations.available
+```
+
+Fast-forward 종료 기준은 모델 history가 아니라 **source runtime의 현재 virtual clock**이다.
+따라서 gen_data가 Model Artifact를 소비하지 않아도 된다. Backend는 available Observation을
+독립적으로 읽고 자신의 `history_requirement`으로 inference 가능 시점을 판정한다.
+
 ## 프로토콜 선택 정책 (기본값 통일 및 예외 적용)
 
 ```
@@ -88,7 +122,7 @@ config.GEN_DATA_PROTOCOL 값으로 "기본 adapter" 하나 생성
 
 ## 캐시 및 상태 관리
 
-`ontology_dashboard` 쪽 3종 캐시(`extraction_plan_cache.json`, `mapping_cache.json`, `topology_cache.json`)는 **Agent 판단 결과**를 캐싱하는 것이라 gen_data와는 무관하다 — 이 캐시들은 "가공" 단계(ontology_dashboard)에 속한다. gen_data가 갖는 유일한 상태 파일은 `.state/gen_data_state.json`이며, 이건 "판단 재사용"이 아니라 "데몬 재시작 시 시뮬레이션 시계를 어디서부터 이어갈지"를 위한 체크포인트다 — "생성" 단계(gen_data)와 "가공" 단계(ontology_dashboard)의 상태 파일은 성격이 다르므로 헷갈리지 않아야 한다.
+`ontology_dashboard` 쪽 3종 캐시(`extraction_plan_cache.json`, `mapping_cache.json`, `topology_cache.json`)는 **Agent 판단 결과**를 캐싱하는 것이라 gen_data와는 무관하다. gen_data의 전역 Canonical/live clock은 `.state/gen_data_state.json`에 저장하며, opt-in Runtime Overlay는 `output/runtime_overlay/runtime_overlay_state.json`에 대상 설비 branch state와 RNG/runtime snapshot을 별도로 checkpoint한다. 둘 다 "판단 재사용"이 아니라 source runtime 재시작 복원용 상태이며, Model/Agent cache와는 책임이 다르다.
 
 ## 라인(Line) 단위 정의
 

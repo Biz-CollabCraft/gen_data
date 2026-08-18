@@ -66,6 +66,24 @@ runtime inference → Product Result Artifact / Evidence
 - `ontology_dashboard/data/sensor`, feature, model, result 저장 경로를 gen_data가 직접
   소유하거나 쓰지 않는다.
 
+### Runtime Overlay 불변식
+
+- Closed-loop feedback은 전체 Generator/Canonical을 다시 만들지 않고 **정비 대상 설비만**
+  opt-in Overlay로 분기한다.
+- `maintenance.started` 이후 대상 설비 Canonical/live Observation은 중단하지만 다른 설비
+  global clock과 생성은 계속된다.
+- maintenance effect는 복제된 Overlay Snapshot에만 적용하고 committed Canonical source나
+  기존 Runtime object를 mutate하지 않는다.
+- MVP `TOOL_REPLACEMENT`는 `tool_wear_min reset -> 0 min` whitelist를 벗어나면 fail-fast한다.
+- branch-local Fast-forward는 source runtime virtual time catch-up 목적이며 global clock을
+  이동시키지 않는다.
+- Overlay Observation은 append-only이며 `source_kind=maintenance_replay_overlay`, session,
+  branch, maintenance, history segment lineage를 보존한다.
+- `gen_data`는 Model Artifact/`history_requirement`을 읽거나 inference-ready를 판정하지 않는다.
+  output event는 `runtime_overlay.observations.available` 의미만 가져야 한다.
+- Prediction, Product Result/Evidence, `warming_up/history_insufficient/ready` 판정은 Backend
+  Diagnosis 소유권이다.
+
 ## 6. Release 계약
 
 - 저장소는 평탄화되어 있지만 release artifact 이름과 ZIP 내부 root는
@@ -105,3 +123,5 @@ PR의 선행 `source-validation`은 최소한 다음을 검증한다.
 8. release ZIP 이름·내부 root·포함 파일 계약을 깨는 변경
 9. workflow가 실제 검증을 실행하지 않는데 PASS evidence로 주장하는 변경
 10. secrets/OIDC 권한을 과도하게 넓히거나 fork PR에 privileged identity를 노출하는 변경
+11. Runtime Overlay가 비대상 설비/global clock/Canonical source를 함께 변경하는 수정
+12. `gen_data`가 Overlay readiness를 Model Artifact/history requirement로 판단하는 수정

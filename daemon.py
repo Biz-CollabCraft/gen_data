@@ -3,12 +3,15 @@
 # ──────────────────────────────────────────────
 
 import random
+import hashlib
+import json
 import signal
 import sys
 import time
 import threading
 from concurrent.futures import ThreadPoolExecutor, wait
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 import config
 from physics_engine import (
@@ -22,6 +25,7 @@ from physics_engine import (
 from protocol.modbus_adapter import ModbusTcpAdapter
 from protocol.opcua_adapter import OpcUaBinaryAdapter
 from line_worker import LineWorker
+from runtime_overlay import RuntimeOverlayCoordinator
 from state_tracker import (
     load_state,
     save_state,
@@ -103,7 +107,52 @@ def build_workers_and_start_time():
         LineWorker(site_id, cell_id, line_assets, runtimes, episodes_by_asset, config, default_adapter_cls())
         for (site_id, cell_id), line_assets in group_assets_by_line(assets).items()
     ]
-    return workers, current_time, state
+    return workers, current_time, state, assets, runtimes
+
+
+def _build_runtime_overlay(assets, runtimes):
+    """Build the optional local/demo Runtime Overlay adapter."""
+    event_file = config.GEN_DATA_RUNTIME_OVERLAY_EVENT_FILE
+    if not event_file:
+        return None
+
+    manifest_path = Path(__file__).resolve().parent / "canonical" / "dataset" / "dataset_manifest.json"
+    dataset_version = "predictive-maintenance-canonical-v3.1"
+    base_source_sha256 = "unavailable"
+    if manifest_path.exists():
+        manifest_bytes = manifest_path.read_bytes()
+        base_source_sha256 = hashlib.sha256(manifest_bytes).hexdigest()
+        try:
+            dataset_version = str(json.loads(manifest_bytes)["dataset_version"])
+        except (KeyError, TypeError, json.JSONDecodeError):
+            pass
+
+    return RuntimeOverlayCoordinator(
+        assets=assets,
+        canonical_runtimes=runtimes,
+        interval_minutes=config.GEN_DATA_INTERVAL_MINUTES,
+        product_cycle_minutes=config.GEN_DATA_PRODUCT_CYCLE_MINUTES,
+        output_root=Path(config.GEN_DATA_OUTPUT_DIR),
+        base_dataset_version=dataset_version,
+        base_source_sha256=base_source_sha256,
+    )
+
+
+def _process_runtime_overlay_events(overlay: RuntimeOverlayCoordinator) -> None:
+    """Consume the configured JSONL inbox; idempotency makes rereads safe."""
+    path = Path(str(config.GEN_DATA_RUNTIME_OVERLAY_EVENT_FILE))
+    if not path.exists():
+        return
+    for line_number, raw_line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+        if not raw_line.strip():
+            continue
+        try:
+            event = json.loads(raw_line)
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"invalid Runtime Overlay event JSON at {path}:{line_number}") from exc
+        if not isinstance(event, dict):
+            raise ValueError(f"Runtime Overlay event must be an object at {path}:{line_number}")
+        overlay.process_event(event)
 
 
 # ──────────────────────────────────────────────
@@ -118,7 +167,11 @@ def run_forever():
     except (ValueError, AttributeError):
         pass
 
-    workers, current_time, state = build_workers_and_start_time()
+    workers, current_time, state, assets, runtimes = build_workers_and_start_time()
+    runtime_overlay = _build_runtime_overlay(assets, runtimes)
+    if runtime_overlay is not None:
+        for worker in workers:
+            worker.observation_allowed = runtime_overlay.canonical_observation_allowed
     tick = timedelta(minutes=config.GEN_DATA_INTERVAL_MINUTES)
     real_seconds_per_tick = (config.GEN_DATA_INTERVAL_MINUTES * 60) / config.GEN_DATA_SPEED
     wall_clock_now = datetime.now(tz=timezone.utc)
@@ -132,11 +185,22 @@ def run_forever():
 
     with ThreadPoolExecutor(max_workers=config.GEN_DATA_MAX_PARALLEL_LINES) as pool:
         while not _shutdown_event.is_set():
+            if runtime_overlay is not None:
+                _process_runtime_overlay_events(runtime_overlay)
+
             # 이번 tick(current_time)을 모든 라인이 동시에 처리 — 같은 타임스탬프로 파일 병렬 저장
             futures = [pool.submit(w.run_one_cycle, current_time) for w in workers]
             wait(futures)
             for f in futures:
                 f.result()  # 예외 즉시 확인 및 노출
+
+            if runtime_overlay is not None:
+                for equipment_id in runtime_overlay.active_equipment_ids:
+                    _rows, available = runtime_overlay.advance_branch_to(
+                        equipment_id, current_time
+                    )
+                    if available is not None:
+                        runtime_overlay.persist_available_event(available)
 
             set_global_last_tick(state, current_time)
             save_state(state)
