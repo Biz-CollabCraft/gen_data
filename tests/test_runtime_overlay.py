@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import random
 import tempfile
 import unittest
@@ -182,6 +183,65 @@ class RuntimeOverlayTest(unittest.TestCase):
         branch = resumed.branches[resumed.branch_by_equipment[self.target["asset_id"]]]
         stored = resumed.store.path_for(branch).read_text(encoding="utf-8").splitlines()
         self.assertEqual(len(stored), 3)
+
+    def test_restart_recovers_availability_event_after_checkpoint_crash_window(self) -> None:
+        coordinator = self.coordinator()
+        self.prepare_branch(coordinator)
+        rows, available = coordinator.advance_branch_to(
+            self.target["asset_id"], self.restart_at + timedelta(minutes=20)
+        )
+        self.assertEqual(len(rows), 3)
+        self.assertIsNotNone(available)
+        self.assertFalse(coordinator.available_event_path.exists())
+        self.assertIn(available["event_id"], coordinator.pending_available_events)
+
+        # Simulate process termination after observations/checkpoint are durable
+        # but before daemon.persist_available_event() is called.
+        resumed = self.coordinator()
+        self.assertIn(available["event_id"], resumed.pending_available_events)
+        self.assertEqual(resumed.recover_pending_available_events(), 1)
+        self.assertEqual(resumed.pending_available_events, {})
+
+        events = [
+            json.loads(line)
+            for line in resumed.available_event_path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0]["event_id"], available["event_id"])
+        self.assertEqual(events[0]["batch_rows"], 3)
+
+        # A second restart must not append the same handoff again.
+        second_restart = self.coordinator()
+        self.assertEqual(second_restart.recover_pending_available_events(), 0)
+        events_after_second_restart = [
+            json.loads(line)
+            for line in second_restart.available_event_path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        self.assertEqual(len(events_after_second_restart), 1)
+
+    def test_availability_outbox_append_is_idempotent_by_event_id(self) -> None:
+        coordinator = self.coordinator()
+        self.prepare_branch(coordinator)
+        _rows, available = coordinator.advance_branch_to(
+            self.target["asset_id"], self.restart_at + timedelta(minutes=10)
+        )
+        self.assertIsNotNone(available)
+
+        coordinator.persist_available_event(available)
+        coordinator.persist_available_event(available)
+        stored = [
+            json.loads(line)
+            for line in coordinator.available_event_path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        self.assertEqual(len(stored), 1)
+
+        conflict = dict(available)
+        conflict["batch_rows"] = int(conflict["batch_rows"]) + 1
+        with self.assertRaises(OverlayConflict):
+            coordinator.persist_available_event(conflict)
 
     def test_line_worker_filter_suppresses_only_target_equipment(self) -> None:
         coordinator = self.coordinator()

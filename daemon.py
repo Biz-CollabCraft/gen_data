@@ -170,6 +170,9 @@ def run_forever():
     workers, current_time, state, assets, runtimes = build_workers_and_start_time()
     runtime_overlay = _build_runtime_overlay(assets, runtimes)
     if runtime_overlay is not None:
+        recovered = runtime_overlay.recover_pending_available_events()
+        if recovered:
+            print(f"Runtime Overlay pending availability event {recovered}건 복구 완료")
         for worker in workers:
             worker.observation_allowed = runtime_overlay.canonical_observation_allowed
     tick = timedelta(minutes=config.GEN_DATA_INTERVAL_MINUTES)

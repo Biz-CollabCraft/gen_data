@@ -230,6 +230,8 @@ class RuntimeOverlayCoordinator:
         self.branches: dict[str, OverlayBranch] = {}
         self.branch_by_equipment: dict[str, str] = {}
         self.processed_events: dict[str, str] = {}
+        self.pending_available_events: dict[str, dict[str, Any]] = {}
+        self._available_event_index: dict[str, str] | None = None
         self._restore_checkpoint()
 
     @property
@@ -263,6 +265,7 @@ class RuntimeOverlayCoordinator:
         payload = {
             "checkpoint_version": CHECKPOINT_VERSION,
             "processed_events": self.processed_events,
+            "pending_available_events": self.pending_available_events,
             "branches": branches,
         }
         self.checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
@@ -278,6 +281,14 @@ class RuntimeOverlayCoordinator:
             raise OverlayContractError("unsupported Runtime Overlay checkpoint version")
         self.processed_events = {
             str(key): str(value) for key, value in payload.get("processed_events", {}).items()
+        }
+        pending = payload.get("pending_available_events", {})
+        if not isinstance(pending, dict):
+            raise OverlayContractError("pending_available_events must be an object")
+        self.pending_available_events = {
+            str(event_id): dict(event)
+            for event_id, event in pending.items()
+            if isinstance(event, dict)
         }
         for key, item in payload.get("branches", {}).items():
             equipment_id = str(item["equipment_id"])
@@ -547,8 +558,10 @@ class RuntimeOverlayCoordinator:
             branch.next_observed_at = observed_at + self.interval
         if written:
             branch.phase = "running"
+            available = self._available_event(branch, written)
+            self.pending_available_events[str(available["event_id"])] = available
             self._checkpoint()
-            return written, self._available_event(branch, written)
+            return written, available
         return [], None
 
     def _available_event(
@@ -580,7 +593,58 @@ class RuntimeOverlayCoordinator:
         This JSONL file is an opt-in demo transport only.  The event meaning is
         deliberately ``available`` rather than ``ready``: gen_data does not know
         or evaluate Model Artifact history requirements.
+
+        The append is idempotent by ``event_id``.  ``advance_branch_to`` stores
+        the event in the Runtime Overlay checkpoint before returning it, so a
+        daemon crash between observation persistence and this outbox append can
+        be recovered on restart without losing or duplicating the handoff.
         """
+        event_id = str(event.get("event_id") or "")
+        if not event_id:
+            raise OverlayContractError("availability event_id is required")
+        digest = _payload_hash(event)
+        index = self._load_available_event_index()
+        existing = index.get(event_id)
+        if existing is not None and existing != digest:
+            raise OverlayConflict(f"availability event identity conflict: {event_id}")
+
         self.available_event_path.parent.mkdir(parents=True, exist_ok=True)
-        with self.available_event_path.open("a", encoding="utf-8") as handle:
-            handle.write(json.dumps(event, ensure_ascii=False, sort_keys=True) + "\n")
+        if existing is None:
+            with self.available_event_path.open("a", encoding="utf-8") as handle:
+                handle.write(json.dumps(event, ensure_ascii=False, sort_keys=True) + "\n")
+            index[event_id] = digest
+
+        if event_id in self.pending_available_events:
+            del self.pending_available_events[event_id]
+            self._checkpoint()
+
+    def _load_available_event_index(self) -> dict[str, str]:
+        if self._available_event_index is not None:
+            return self._available_event_index
+        index: dict[str, str] = {}
+        if self.available_event_path.exists():
+            for raw_line in self.available_event_path.read_text(encoding="utf-8").splitlines():
+                if not raw_line.strip():
+                    continue
+                event = json.loads(raw_line)
+                event_id = str(event.get("event_id") or "")
+                if not event_id:
+                    raise OverlayContractError("stored availability event is missing event_id")
+                digest = _payload_hash(event)
+                existing = index.get(event_id)
+                if existing is not None and existing != digest:
+                    raise OverlayConflict(
+                        f"stored availability event identity conflict: {event_id}"
+                    )
+                index[event_id] = digest
+        self._available_event_index = index
+        return index
+
+    def recover_pending_available_events(self) -> int:
+        """Replay checkpointed availability events into the idempotent outbox."""
+        recovered = 0
+        for event_id in list(self.pending_available_events):
+            event = self.pending_available_events[event_id]
+            self.persist_available_event(event)
+            recovered += 1
+        return recovered
