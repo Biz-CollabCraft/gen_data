@@ -491,14 +491,20 @@ jobs:
           )
           PY
 
-          curl --fail-with-body --silent --show-error \
+          http_status="$(curl --silent --show-error \
             --retry 3 --retry-delay 2 \
             -X POST \
             -H "Authorization: Bearer ${GCP_ACCESS_TOKEN}" \
             -H "Content-Type: application/json" \
             --data-binary @/tmp/vertex-request.json \
             "https://aiplatform.googleapis.com/v1/projects/flai-oosuhada-20260506/locations/global/publishers/google/models/${GEMINI_REVIEW_MODEL}:generateContent" \
-            > /tmp/vertex-response.json
+            --output /tmp/vertex-response.json \
+            --write-out '%{http_code}')"
+          if [[ "$http_status" -lt 200 || "$http_status" -ge 300 ]]; then
+            echo "Vertex AI request failed: HTTP ${http_status}" >&2
+            cat /tmp/vertex-response.json >&2
+            exit 1
+          fi
 
           python3 - <<'PY'
           import json
