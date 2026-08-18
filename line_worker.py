@@ -43,6 +43,42 @@ class LineWorker:
 
         self.adapter = self._resolve_adapter(default_adapter)
         self.unit_map = self._load_or_create_unit_map()
+        self._last_emitted_at = self._load_last_emitted_at()
+
+    def _sensor_stream_path(self) -> Path:
+        return (
+            Path(self.config.GEN_DATA_OUTPUT_DIR)
+            / "sensor"
+            / f"fac{self.site_id}"
+            / f"line{self.cell_id}"
+            / "sensor_stream.jsonl"
+        )
+
+    def _load_last_emitted_at(self) -> datetime | None:
+        """Recover the line watermark from append-only output after restart.
+
+        The global state checkpoint is the scheduling authority, while this
+        per-line watermark is a second idempotency guard for the small crash
+        window between output append and global checkpoint persistence.
+        """
+
+        path = self._sensor_stream_path()
+        if not path.exists():
+            return None
+        last: datetime | None = None
+        with path.open(encoding="utf-8") as handle:
+            for raw_line in handle:
+                if not raw_line.strip():
+                    continue
+                try:
+                    payload = json.loads(raw_line)
+                    value = datetime.fromisoformat(str(payload["observed_at"]))
+                except (json.JSONDecodeError, KeyError, ValueError, TypeError):
+                    continue
+                if value.tzinfo is None:
+                    continue
+                last = value
+        return last
 
     def _resolve_adapter(self, default_adapter):
         """라인 폴더의 override 파일이 있을 경우 적용, 없으면 전역 기본 어댑터 반환."""
@@ -72,6 +108,11 @@ class LineWorker:
 
     def run_one_cycle(self, observed_at: datetime) -> None:
         """지정된 관측 시각(observed_at) 1개 틱에 대한 전 자산 물리 계산 및 아펜드 기입."""
+        if (
+            getattr(self, "_last_emitted_at", None) is not None
+            and observed_at <= self._last_emitted_at
+        ):
+            return
         raw_values = {
             a["asset_id"]: self._compute_physics_value(a, observed_at)
             for a in self.assets
@@ -85,6 +126,7 @@ class LineWorker:
 
         decoded = self.adapter.decode_response(frame)
         self._write_processed_layers(decoded, observed_at)
+        self._last_emitted_at = observed_at
 
     def _compute_physics_value(self, asset: dict, observed_at: datetime) -> dict:
         """v3.1 physics_engine을 활용한 자산별 센서 및 물리 상태 관측치 산출."""
@@ -290,6 +332,6 @@ class LineWorker:
             }
             records.append(record)
 
+        rendered = "".join(json.dumps(rec, ensure_ascii=False) + "\n" for rec in records)
         with ndjson_path.open("a", encoding="utf-8") as f:
-            for rec in records:
-                f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+            f.write(rendered)

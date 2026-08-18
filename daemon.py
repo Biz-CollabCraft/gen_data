@@ -14,6 +14,13 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import config
+from generation_clock import (
+    ACCELERATED_MODE,
+    WALL_CLOCK_MODE,
+    SystemClock,
+    accelerated_start_time,
+    next_wall_clock_boundary,
+)
 from physics_engine import (
     build_topology,
     build_schedule,
@@ -30,7 +37,11 @@ from state_tracker import (
     load_state,
     save_state,
     get_global_last_tick,
-    set_global_last_tick
+    set_global_last_tick,
+    get_wall_clock_schedule_origin,
+    set_wall_clock_schedule_origin,
+    checkpoint_wall_clock_runtimes,
+    restore_wall_clock_runtimes,
 )
 
 PROTOCOL_ADAPTERS = {
@@ -67,22 +78,39 @@ def group_assets_by_line(assets: list[dict]) -> dict:
 # 워커 객체 구축 및 시작 시각 산출
 # ──────────────────────────────────────────────
 
-def build_workers_and_start_time():
+def build_workers_and_start_time(*, clock=None):
     """토폴로지 및 에피소드 구축 후 전 라인 워커 리스트 생성."""
+    clock = clock or SystemClock()
     assets, relations = build_topology()
     schedule = build_schedule(assets, config.GEN_DATA_SEED, "balanced_demo")
     state = load_state()
 
     tick = timedelta(minutes=config.GEN_DATA_INTERVAL_MINUTES)
-    last_tick = get_global_last_tick(state)
-    current_time = (last_tick + tick) if last_tick else (
-        datetime.now(tz=timezone.utc) - timedelta(hours=config.GEN_DATA_BACKFILL_HOURS)
-    )
+    clock_mode = config.GEN_DATA_CLOCK_MODE
+    last_tick = get_global_last_tick(state, mode=clock_mode)
+    if clock_mode == WALL_CLOCK_MODE:
+        current_time = next_wall_clock_boundary(
+            clock.now(),
+            interval_minutes=config.GEN_DATA_INTERVAL_MINUTES,
+            last_emitted_at=last_tick,
+        )
+        schedule_origin = get_wall_clock_schedule_origin(state)
+        if schedule_origin is None:
+            schedule_origin = current_time
+            set_wall_clock_schedule_origin(state, schedule_origin)
+    else:
+        current_time = accelerated_start_time(
+            clock.now(),
+            interval_minutes=config.GEN_DATA_INTERVAL_MINUTES,
+            backfill_hours=config.GEN_DATA_BACKFILL_HOURS,
+            last_emitted_at=last_tick,
+        )
+        schedule_origin = current_time - timedelta(hours=config.GEN_DATA_BACKFILL_HOURS)
 
     far_future = current_time + timedelta(days=365)
     episodes = build_episodes(
         schedule,
-        current_time - timedelta(hours=config.GEN_DATA_BACKFILL_HOURS),
+        schedule_origin,
         far_future,
         config.GEN_DATA_INTERVAL_MINUTES
     )
@@ -97,6 +125,9 @@ def build_workers_and_start_time():
             baseline=make_baseline(a, config.GEN_DATA_SEED)
         ) for a in assets
     }
+    restored_runtimes = 0
+    if clock_mode == WALL_CLOCK_MODE:
+        restored_runtimes = restore_wall_clock_runtimes(state, runtimes)
 
     import line_worker as line_worker_module
     line_worker_module.PROTOCOL_ADAPTERS = PROTOCOL_ADAPTERS
@@ -107,7 +138,7 @@ def build_workers_and_start_time():
         LineWorker(site_id, cell_id, line_assets, runtimes, episodes_by_asset, config, default_adapter_cls())
         for (site_id, cell_id), line_assets in group_assets_by_line(assets).items()
     ]
-    return workers, current_time, state, assets, runtimes
+    return workers, current_time, state, assets, runtimes, restored_runtimes
 
 
 def _build_runtime_overlay(assets, runtimes):
@@ -159,15 +190,18 @@ def _process_runtime_overlay_events(overlay: RuntimeOverlayCoordinator) -> None:
 # 데몬 영구 실행 루프
 # ──────────────────────────────────────────────
 
-def run_forever():
+def run_forever(*, clock=None):
     """공유 타임라인 기반 단일 무한 루프 데몬 구동."""
+    clock = clock or SystemClock()
     try:
         signal.signal(signal.SIGINT, _handle_shutdown)
         signal.signal(signal.SIGTERM, _handle_shutdown)
     except (ValueError, AttributeError):
         pass
 
-    workers, current_time, state, assets, runtimes = build_workers_and_start_time()
+    workers, current_time, state, assets, runtimes, restored_runtimes = build_workers_and_start_time(
+        clock=clock
+    )
     runtime_overlay = _build_runtime_overlay(assets, runtimes)
     if runtime_overlay is not None:
         recovered = runtime_overlay.recover_pending_available_events()
@@ -177,17 +211,30 @@ def run_forever():
             worker.observation_allowed = runtime_overlay.canonical_observation_allowed
     tick = timedelta(minutes=config.GEN_DATA_INTERVAL_MINUTES)
     real_seconds_per_tick = (config.GEN_DATA_INTERVAL_MINUTES * 60) / config.GEN_DATA_SPEED
-    wall_clock_now = datetime.now(tz=timezone.utc)
-    is_backfilling = current_time < wall_clock_now
+    wall_clock_now = clock.now()
+    is_backfilling = (
+        config.GEN_DATA_CLOCK_MODE == ACCELERATED_MODE and current_time < wall_clock_now
+    )
+
+    if config.GEN_DATA_CLOCK_MODE == WALL_CLOCK_MODE:
+        # Persist schedule origin before the first wait so a pre-emission restart
+        # does not shift deterministic degradation/maintenance episodes.
+        save_state(state)
 
     print(
         f"gen_data 데몬 시작 — 라인 {len(workers)}개, 기본 프로토콜={config.GEN_DATA_PROTOCOL} "
         f"(line_protocol_map.json이 있는 라인만 override), 동일 타임라인으로 매 tick 병렬 저장; "
+        f"clock_mode={config.GEN_DATA_CLOCK_MODE}, restored_runtime_assets={restored_runtimes}; "
         f"output={config.OUTPUT_DIR_SOURCE}, settings={config.SETTINGS_SOURCE}, seed={config.SEED_SOURCE}"
     )
 
     with ThreadPoolExecutor(max_workers=config.GEN_DATA_MAX_PARALLEL_LINES) as pool:
         while not _shutdown_event.is_set():
+            if config.GEN_DATA_CLOCK_MODE == WALL_CLOCK_MODE:
+                clock.sleep_until(current_time, cancelled=_shutdown_event.is_set)
+                if _shutdown_event.is_set():
+                    break
+
             if runtime_overlay is not None:
                 _process_runtime_overlay_events(runtime_overlay)
 
@@ -205,13 +252,22 @@ def run_forever():
                     if available is not None:
                         runtime_overlay.persist_available_event(available)
 
-            set_global_last_tick(state, current_time)
+            if config.GEN_DATA_CLOCK_MODE == WALL_CLOCK_MODE:
+                checkpoint_wall_clock_runtimes(state, runtimes)
+            set_global_last_tick(state, current_time, mode=config.GEN_DATA_CLOCK_MODE)
             save_state(state)
 
-            current_time += tick
-            if is_backfilling and current_time >= wall_clock_now:
-                is_backfilling = False
-            if not is_backfilling:
-                time.sleep(real_seconds_per_tick)
+            if config.GEN_DATA_CLOCK_MODE == WALL_CLOCK_MODE:
+                current_time = next_wall_clock_boundary(
+                    clock.now(),
+                    interval_minutes=config.GEN_DATA_INTERVAL_MINUTES,
+                    last_emitted_at=current_time,
+                )
+            else:
+                current_time += tick
+                if is_backfilling and current_time >= wall_clock_now:
+                    is_backfilling = False
+                if not is_backfilling:
+                    clock.sleep(real_seconds_per_tick)
 
     print("gen_data 데몬 정상 종료")

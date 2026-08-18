@@ -276,6 +276,10 @@ class RuntimeOverlayTest(unittest.TestCase):
         self.assertNotIn(self.target["asset_id"], adapter.values)
         self.assertIn(self.other["asset_id"], adapter.values)
 
+        first_values = dict(adapter.values)
+        worker.run_one_cycle(self.started_at)
+        self.assertEqual(adapter.values, first_values)
+
 
 if __name__ == "__main__":
     unittest.main()
