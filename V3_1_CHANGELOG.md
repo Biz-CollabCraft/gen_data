@@ -27,7 +27,7 @@ V3.1은 V3의 AI4I 물리 계약과 Result Artifact 구조를 유지하면서, �
 - 모든 reset은 `tool_replaced=1` 정비 이벤트 시작 시각과 일치
 - 모든 `tool_replaced=1` 정비 이벤트에는 대응 reset이 존재
 
-현재 30일 seed 42 결과:
+현재 43일 seed 42 결과:
 
 ```text
 running reset                         0

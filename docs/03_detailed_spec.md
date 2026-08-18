@@ -74,10 +74,10 @@ prediction timeline ──▶ result artifacts
 |---|---:|---|---|
 | `asset_master.csv` | 100 | 자산 유형, 사이트, 셀 | `asset_id` |
 | `asset_relation.csv` | 80 | 압축기 → CNC 공급 관계 | `from_asset_id`, `to_asset_id` |
-| `compressor_sensor_observation.csv` | 86,400 | 전압, 회전, 압력, 진동, 상대 진동 zone | `asset_id`, `observed_at` |
-| `cnc_sensor_observation.csv` | 345,600 | 공기·공정 온도, RPM, 토크, 공구 마모 | `asset_id`, `observed_at` |
-| `cnc_production_cycle.csv` | 170,875 | 제품 유형, 절삭 시간, wear 증가량 | `cnc_asset_id` |
-| `maintenance_event.csv` | 790 | 계획 공구 교체, 고장 복구 | `asset_id`, `source_event_id` |
+| `compressor_sensor_observation.csv` | 123,840 | 전압, 회전, 압력, 진동, 상대 진동 zone | `asset_id`, `observed_at` |
+| `cnc_sensor_observation.csv` | 495,360 | 공기·공정 온도, RPM, 토크, 공구 마모 | `asset_id`, `observed_at` |
+| `cnc_production_cycle.csv` | 244,929 | 제품 유형, 절삭 시간, wear 증가량 | `cnc_asset_id` |
+| `maintenance_event.csv` | 1,151 | 계획 공구 교체, 고장 복구 | `asset_id`, `source_event_id` |
 | `dataset_manifest.json` | 1 | 기간, seed, 물리 계약, 파일 checksum | `dataset_version` |
 
 **Evaluation truth** (gen_data가 알고 있어야 하지만 출력 파일에는 절대 노출하지 않는 계층 — §01 개요의 Truth/Observation 분리 원칙 그대로 적용):

@@ -1,9 +1,9 @@
 {
   "dataset_version": "canonical-ai4i-physics-v3.1",
-  "created_at": "2026-08-10T11:09:16+09:00",
+  "created_at": "2026-08-18T14:57:50+09:00",
   "start_at": "2026-08-01T00:00:00+09:00",
-  "end_at": "2026-08-31T00:00:00+09:00",
-  "days": 30,
+  "end_at": "2026-09-13T00:00:00+09:00",
+  "days": 43,
   "seed": 42,
   "rate_profile": "balanced_demo",
   "ownership_contract": {
@@ -57,14 +57,14 @@
   "canonical_outputs": {
     "asset_master.csv": "46d28fb8af9a9737473b71325a54115031d42b92fd2fc1cc8d890ce9ea726192",
     "asset_relation.csv": "4602eb35b30f33da0df197d320a9779f91cd40fcb5dc98d194826c6d92945613",
-    "compressor_sensor_observation.csv": "138e75c0f72104db1713c478d0f14140edacc8d55bc473a69e0256531b7bc08f",
-    "cnc_sensor_observation.csv": "ebac657f790ecdd6d9b61cb08aa35997c7361be6823bb649b19bcf97583c6462",
-    "cnc_production_cycle.csv": "565dae765a4f2566910a51ca22ed4970687bd269ae6e1d1cb52e51c4446361e3",
-    "maintenance_event.csv": "479dcb18109cfd3c05ecfcaa990ffd9103843037f1f3498f28f39eeee6fc18b8"
+    "compressor_sensor_observation.csv": "33820c9f3da1ac4aebb15c99a30e372230822c03a87fe743f220d18a95a11d75",
+    "cnc_sensor_observation.csv": "f898a33ade7f119ae3d6b27744cf5b13f6e8bc15628b1c254587199e0397977d",
+    "cnc_production_cycle.csv": "f1cd98381e2385d9dc903ce26d13be6089565a8b904a416bc169cc39a0226c81",
+    "maintenance_event.csv": "af80cb1d3b5027eeb433f27306ae428340ddc8b4c9794734cdfdd55f80f29492"
   },
   "evaluation_truth_outputs": {
     "failure_schedule.csv": "f52e7028d5f430535143b13bc085ee0c9bf0567f755a04a1c41a55d915acbe92",
-    "compressor_failure_truth.csv": "ef93ba7810c20b95ad50c4c6f83aed197e53e4a56e8c7a1230c80d47dca1f35b",
-    "cnc_failure_truth.csv": "a0a2e7136ee0aa30598aadb11ffffefd59a4b957b0e1d2ba62454a3d0436aeeb"
+    "compressor_failure_truth.csv": "33658fa51965c9327529f08742d4e18838d6e23cbe9fa64439ad41f1c24a4691",
+    "cnc_failure_truth.csv": "39d8e32a9f1d9cfc5be6fe21c604b2c2e7f142ac48cd71cc00100e890a9709de"
   }
 }

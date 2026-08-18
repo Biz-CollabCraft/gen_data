@@ -88,7 +88,7 @@ python3 -m unittest tests/test_dataset_api_truth_isolation.py
 validation에 집중합니다.
 
 ```bash
-python3 scripts/run_pipeline.py --days 30 --seed 42
+python3 scripts/run_pipeline.py --days 43 --seed 42
 ```
 
 기존 ML/prediction/result fixture까지 재생성해야 하는 회귀 검증에서만 명시적으로
@@ -96,7 +96,7 @@ python3 scripts/run_pipeline.py --days 30 --seed 42
 
 ```bash
 python3 scripts/run_pipeline.py \
-  --days 30 \
+  --days 43 \
   --seed 42 \
   --include-reference-model-fixtures
 ```
