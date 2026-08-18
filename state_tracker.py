@@ -3,10 +3,16 @@
 # ──────────────────────────────────────────────
 
 import json
+import os
 from pathlib import Path
 from datetime import datetime
 
-STATE_PATH = Path(__file__).parent / ".state" / "gen_data_state.json"
+STATE_PATH = Path(
+    os.environ.get(
+        "GEN_DATA_STATE_PATH",
+        str(Path(__file__).parent / ".state" / "gen_data_state.json"),
+    )
+).expanduser()
 
 
 # ──────────────────────────────────────────────

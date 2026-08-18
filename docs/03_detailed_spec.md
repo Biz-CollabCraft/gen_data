@@ -17,6 +17,7 @@ GEN_DATA_SETTING_CONFIG_PATH=/path/to/gen_data/setting.config
 |---|---|---|
 | `GEN_DATA_OUTPUT_DIR` | `.raw` 및 파생 산출물 저장 루트 | **미설정 또는 빈 값이면 저장소 루트의 `output/`로 자동 폴백** — 에러로 중단하지 않음. `OUTPUT_DIR_SOURCE`로 출처를 남긴다. |
 | `GEN_DATA_SETTING_CONFIG_PATH` | 생성 설정 파일(`setting.config`)의 경로 | 미설정 또는 그 경로에 파일이 없으면 하드코딩된 기본값으로 동작 (에러 아님) |
+| `GEN_DATA_STATE_PATH` | 마지막 완료 tick 체크포인트 JSON 경로 | 미설정 시 저장소 `.state/gen_data_state.json`. 운영에서는 데이터 볼륨 경로를 지정해 checkout 교체와 상태를 분리할 수 있음 |
 | `GEN_DATA_API_HOST` / `GEN_DATA_API_PORT` | 후속 계획인 `server.py`용 설정 | 현재 PR의 실행 코드에서는 아직 사용하지 않음 |
 | `GEN_DATA_SEED` | 시뮬레이션 난수 시드 값 (선택적 최우선 덮어쓰기) | `.env`/환경변수에 설정 시 최우선 적용. 정수(예: `42`) 지정 시 고정 시드, `"random"`, `"-1"`, `"none"` 지정 시 프로세스 시작 때 시스템 엔트로피로 새 정수 seed를 한 번 생성. 미지정 시 `setting.config` ➔ 기본값 `42` |
 

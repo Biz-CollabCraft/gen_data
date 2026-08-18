@@ -38,6 +38,8 @@ class DaemonCncRuntimeTest(unittest.TestCase):
 
         self.assertEqual(values["product_type"], "H")
         self.assertEqual(values["tool_wear_min"], 123.4)
+        self.assertEqual(values["operating_state"], "running")
+        self.assertTrue(values["generator_version"])
 
     def test_operating_cycles_increase_tool_wear(self) -> None:
         first = self.worker._compute_physics_value(self.asset, self.observed_at)
