@@ -114,6 +114,7 @@ jobs:
     permissions:
       actions: read
       contents: read
+      issues: write
       id-token: write
       pull-requests: write
     uses: ./.github/workflows/code-review.yml
