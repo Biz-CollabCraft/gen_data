@@ -45,6 +45,7 @@ DEFAULTS: dict[str, object] = {
     "GEN_DATA_BACKFILL_HOURS": 6,
     "GEN_DATA_MAX_PARALLEL_LINES": 20,
     "GEN_DATA_PROTOCOL": "modbus_tcp",
+    "GEN_DATA_CLOCK_MODE": "accelerated",
 }
 
 
@@ -79,3 +80,18 @@ GEN_DATA_SPEED = float(_settings["GEN_DATA_SPEED"])
 GEN_DATA_BACKFILL_HOURS = int(_settings["GEN_DATA_BACKFILL_HOURS"])
 GEN_DATA_MAX_PARALLEL_LINES = int(_settings["GEN_DATA_MAX_PARALLEL_LINES"])
 GEN_DATA_PROTOCOL = str(_settings["GEN_DATA_PROTOCOL"])
+
+from generation_clock import normalize_clock_mode
+
+_env_clock_mode = os.environ.get("GEN_DATA_CLOCK_MODE")
+GEN_DATA_CLOCK_MODE = normalize_clock_mode(
+    _env_clock_mode if _env_clock_mode is not None else _settings["GEN_DATA_CLOCK_MODE"]
+)
+
+# Optional local/demo adapter for the Closed-loop Runtime Overlay contract.
+# The cross-repository transport remains versioned-schema driven; when this is
+# unset the Canonical/live daemon behavior is unchanged.
+_runtime_overlay_event_file = os.environ.get("GEN_DATA_RUNTIME_OVERLAY_EVENT_FILE", "").strip()
+GEN_DATA_RUNTIME_OVERLAY_EVENT_FILE = (
+    str(Path(_runtime_overlay_event_file).expanduser()) if _runtime_overlay_event_file else None
+)

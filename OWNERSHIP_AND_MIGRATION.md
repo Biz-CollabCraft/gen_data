@@ -29,8 +29,31 @@ ontology_dashboard/systems/backend/diagnosis
 | `api/dataset_server.py`의 canonical endpoint | source/reference fixture 확인용 read-only API |
 | `experiments/connected_air_supply/*` | source-side 관계 추론 실험 및 validation fixture |
 | `agent/*` | source/evidence 평가 fixture |
+| `runtime_overlay.py` | Closed-loop 정비 대상 설비의 Snapshot/branch-local clock/Overlay Observation 생성 |
 
 `evaluation_truth`와 `hidden_truth`는 KEEP이지만 공개 제품 입력이 아니라 **검증 전용**이다.
+
+### Runtime Overlay 소유권
+
+Closed-loop feedback도 Source Data Producer 경계를 유지한다.
+
+```text
+ontology_dashboard Closed-loop
+maintenance.started / completed / replay_requested
+        ↓
+gen_data Runtime Overlay
+target equipment Snapshot + branch-local clock
+        ↓ runtime_overlay.observations.available
+ontology_dashboard/systems/backend/diagnosis
+history_requirement 판단 + runtime inference
+        ↓
+Product Result Artifact / Evidence
+```
+
+`gen_data`가 소유하는 것은 대상 설비 pause, 정비 효과가 적용된 Overlay Snapshot,
+branch-local Fast-forward와 Overlay Observation까지다. Model Artifact를 직접 읽거나
+필요 history row 수를 결정하지 않고, Prediction/Result/Evidence도 생성하지 않는다.
+Canonical source/reference와 정비 전 Observation은 수정하지 않는다.
 
 ## 2. REFERENCE FIXTURE — 보존하지만 운영 SoT 아님
 
@@ -118,3 +141,8 @@ Canonical/source generation
 3. runtime inference/result/evidence 책임을 `systems/backend/diagnosis`로 이동
 4. gen_data reference fixture와 새 운영 결과 간 compatibility regression 검증
 5. 제품 코드가 `gen_data/canonical/model_outputs`를 운영 결과 경로로 직접 참조하지 않는지 검사
+
+Runtime Overlay는 위 마이그레이션과 별개로 opt-in source runtime 경로다. 최종 시스템
+간 event/Observation JSON Schema는 `ontology_dashboard/contracts/schemas/`의 versioned
+계약을 정본으로 사용하고, 이 저장소의 JSONL inbox/outbox는 로컬 통합 adapter로만
+취급한다.

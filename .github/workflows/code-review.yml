@@ -277,6 +277,7 @@ jobs:
               "physics_engine.py",
               "daemon.py",
               "line_worker.py",
+              "runtime_overlay.py",
               "config.py",
               "scripts/generate_canonical_dataset.py",
               "scripts/validate_package.py",
