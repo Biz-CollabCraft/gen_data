@@ -1,0 +1,32 @@
+name: AI Review Request
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  request:
+    if: >-
+      github.event.issue.pull_request &&
+      github.event.comment.body == '/ai-review' &&
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Convert command into one-shot label trigger
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh label create ai-review \
+            --repo "$GITHUB_REPOSITORY" \
+            --color "5319E7" \
+            --description "Request one full Vertex AI PR review" \
+            --force
+          gh issue edit "$PR_NUMBER" \
+            --repo "$GITHUB_REPOSITORY" \
+            --add-label ai-review
