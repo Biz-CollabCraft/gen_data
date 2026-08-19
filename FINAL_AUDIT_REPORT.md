@@ -47,7 +47,7 @@ source/reference 기준본이다.
 ```text
 corr(air, process)       0.919768
 corr(rpm, torque)       -0.845823
-process below air        0 / 345600
+process below air        0 / 495360
 air std                  1.953310
 process std              1.512621
 rpm std                185.895344

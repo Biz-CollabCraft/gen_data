@@ -71,7 +71,7 @@ TWF: tool_wear between 200 and 240 minutes
 RNF: condition-independent random failure
 ```
 
-30일 seed 42 검증 결과:
+43일 seed 42 검증 결과:
 
 | 항목 | 결과 |
 |---|---:|
@@ -150,7 +150,7 @@ SHAP은 선택 사항이다. 미설치 시 표준화된 linear-logit contributio
 
 ```bash
 .venv/bin/python scripts/run_pipeline.py \
-  --days 30 \
+  --days 43 \
   --seed 42 \
   --rate-profile balanced_demo \
   --interventions 4 \
@@ -170,7 +170,7 @@ SHAP은 선택 사항이다. 미설치 시 표준화된 linear-logit contributio
 
 ```bash
 .venv/bin/python scripts/run_pipeline.py \
-  --days 30 \
+  --days 43 \
   --seed 42 \
   --rate-profile balanced_demo \
   --interventions 4 \
@@ -186,10 +186,10 @@ SHAP은 선택 사항이다. 미설치 시 표준화된 linear-logit contributio
 |---|---:|
 | 자산 | 100 |
 | 관계 | 80 |
-| 압축기 관측 | 86,400 |
-| CNC 관측 | 345,600 |
-| 생산 cycle | 170,875 |
-| 정비 event | 790 |
+| 압축기 관측 | 123,840 |
+| CNC 관측 | 495,360 |
+| 생산 cycle | 244,929 |
+| 정비 event | 1,151 |
 | 전체 failure truth | 76 |
 | Agent public case | 20 |
 | Prediction timeline reference fixture | 68,208 |

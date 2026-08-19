@@ -5,8 +5,8 @@
   "hidden_truth_available_to_agent": false,
   "target_asset_id": "CNC-S02-L02-02",
   "site_id": "S02",
-  "investigation_window_start": "2026-08-11T23:00:00+09:00",
-  "investigation_window_end": "2026-08-14T23:00:00+09:00",
+  "investigation_window_start": "2026-08-17T04:00:00+09:00",
+  "investigation_window_end": "2026-08-20T04:00:00+09:00",
   "question": "Review the target CNC anomaly and determine whether an upstream relation is supported. Reject unsupported upstream claims and identify local evidence when appropriate.",
   "available_files": [
     "asset_master.csv",

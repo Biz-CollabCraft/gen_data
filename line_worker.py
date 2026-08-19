@@ -92,21 +92,41 @@ class LineWorker:
         runtime = self.runtimes[asset_id]
         episodes = self.episodes_by_asset.get(asset_id, [])
 
-        is_operating_flag, _mode_str = operating_state(episodes, observed_at)
+        is_operating_flag, operating_state_value = operating_state(episodes, observed_at)
         is_operating = bool(is_operating_flag)
 
         if asset["asset_type"] == "compressor":
+            from physics_engine import (
+                COMPRESSOR_BASELINE,
+                GENERATOR_VERSION,
+                sensor_effects,
+                vibration_zone,
+            )
+
             baseline = runtime.baseline
-            v_val = baseline["voltage_raw"] + ar_noise(runtime, "voltage_raw", 2.0)
-            rot_val = baseline["rotation_raw"] + ar_noise(runtime, "rotation_raw", 10.0)
-            p_val = baseline["pressure_raw"] + ar_noise(runtime, "pressure_raw", 0.5)
-            vib_val = baseline["vibration_raw"] + ar_noise(runtime, "vibration_raw", 0.2)
+            effects = sensor_effects(episodes, observed_at)
+            values = {}
+            for sensor, (_mean, std) in COMPRESSOR_BASELINE.items():
+                base = baseline[sensor]
+                values[sensor] = (
+                    base
+                    + ar_noise(runtime, sensor, std)
+                    + base * effects.get(sensor, 0.0)
+                )
+            vibration_std = float(COMPRESSOR_BASELINE["vibration_raw"][1])
+            relative_vibration_z = (
+                values["vibration_raw"] - baseline["vibration_raw"]
+            ) / vibration_std
             return {
-                "voltage_raw": round(v_val, 2),
-                "rotation_raw": round(rot_val, 2),
-                "pressure_raw": round(p_val, 2),
-                "vibration_raw": round(vib_val, 2),
+                "voltage_raw": round(values["voltage_raw"], 4),
+                "rotation_raw": round(values["rotation_raw"], 4),
+                "pressure_raw": round(values["pressure_raw"], 4),
+                "vibration_raw": round(values["vibration_raw"], 4),
+                "relative_vibration_z": round(relative_vibration_z, 4),
+                "relative_vibration_zone": vibration_zone(relative_vibration_z),
                 "is_operating": is_operating,
+                "operating_state": operating_state_value,
+                "generator_version": GENERATOR_VERSION,
             }
         else:
             # CNC 가공기
@@ -125,6 +145,8 @@ class LineWorker:
                 active_episode,
                 protected_failure_window,
             )
+            from physics_engine import GENERATOR_VERSION
+
             return {
                 "product_type": runtime.product_type,
                 "air_temperature_k": round(res.get("air_temperature_k", 300.0), 2),
@@ -133,6 +155,8 @@ class LineWorker:
                 "torque_nm": round(res.get("torque_nm", 40.0), 2),
                 "tool_wear_min": round(runtime.tool_wear_min, 2),
                 "is_operating": is_operating,
+                "operating_state": "running" if is_operating else "maintenance",
+                "generator_version": GENERATOR_VERSION,
             }
 
     def _prepare_cnc_runtime(

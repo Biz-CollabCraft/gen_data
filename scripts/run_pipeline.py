@@ -24,7 +24,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="Run Canonical source generation + source/reference validation"
     )
-    parser.add_argument("--days", type=int, default=30)
+    parser.add_argument("--days", type=int, default=43)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument(
         "--rate-profile",

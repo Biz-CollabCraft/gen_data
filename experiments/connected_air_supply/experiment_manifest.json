@@ -13,149 +13,149 @@
   "public_observation_schema_contains_effect_columns": false,
   "public_case_count": 20,
   "hidden_truth_is_evaluator_only": true,
-  "canonical_dataset_manifest_sha256": "0480d562648d84052e0c6fbd6294dc3a06dd19e7d3a4c1cabb7d0da122efeaf1",
-  "public_case_index_sha256": "d2d28bceadf58720c943f5a4c0048e6b5f439961012e387f0c72df46c43cde8e",
-  "hidden_truth_sha256": "ba70f3e7e126d38990a801a2bcb706b7f235a24a13ea94aa2a79bc9d75a759c9",
+  "canonical_dataset_manifest_sha256": "63b282e98b4dd354d38d8c59bdf14cb53a988754da4dee189eb9b91a99a93071",
+  "public_case_index_sha256": "1b4a1c4eafd6423686d6d7dae93db0d33091b50a15b48a1d1e8ad5e2d4982d16",
+  "hidden_truth_sha256": "19965a5c962fbbcfe337ce31421214233b00636f0ba882599e5618ac5b7bbf11",
   "case_files": {
     "CASE-RR-001": {
-      "case.json": "03758296c39972d9e97e708b9f2d84b219a487b42f2b5c97113f29c2a784016f",
+      "case.json": "217aea74d648df95aba0e54236184a2a73c62f2d03f6d3f5799e6fb7839663f4",
       "asset_master.csv": "ee253e05e1ea8cafdd038e405766f78280ad272e367c3a985ea68159bf465d06",
       "asset_relation.csv": "6a5fb689df2ad57aeb6731b4c763a6cd9b84b1dae863212e7eebfcf707e0217b",
-      "compressor_sensor_observation.csv": "42e86061c98a7abda583134daf8c0947d98805e655b0457e7e8251019f1d4bea",
-      "cnc_sensor_observation.csv": "1821022642a8c151cdd088ee80d0f3b1fd13983da4dc6e20f63b1f851c6a9e73"
+      "compressor_sensor_observation.csv": "2b0e5620c19d74d16371392d7c7dd8c84499b4b128b91b7274239d6f1bb5895b",
+      "cnc_sensor_observation.csv": "806d79564c2fe46b53d75a0167215623270f9cb0e12ee7e3fe1d1179eb730c17"
     },
     "CASE-RR-002": {
-      "case.json": "3524204bab6c1e83cdfe9b702c5aa4fb35f8a9dc9f7dfd0bf0a5047f62d9a148",
+      "case.json": "169e8db996dbac3d0182f296632ee174cbcdaaea3df4204a65c90a4c67615faf",
       "asset_master.csv": "ee253e05e1ea8cafdd038e405766f78280ad272e367c3a985ea68159bf465d06",
       "asset_relation.csv": "6a5fb689df2ad57aeb6731b4c763a6cd9b84b1dae863212e7eebfcf707e0217b",
-      "compressor_sensor_observation.csv": "42e86061c98a7abda583134daf8c0947d98805e655b0457e7e8251019f1d4bea",
-      "cnc_sensor_observation.csv": "eef8c603828ec2b0278a1d104530b0c93ca199ed92a121fb11a595127dd41649"
+      "compressor_sensor_observation.csv": "2b0e5620c19d74d16371392d7c7dd8c84499b4b128b91b7274239d6f1bb5895b",
+      "cnc_sensor_observation.csv": "1cbbe52aa6a94f99c51cad9fab6bbe2fe203b036c1ebe62198e38fa11c7ccebf"
     },
     "CASE-RR-003": {
-      "case.json": "4c2c3aeaca3a91c77933b71bb411ceefbd4053116106ab23a457087da191a550",
+      "case.json": "916e6f15b503474a125ba0847a57e8125223c31b22fd41d219e35903f61c4251",
       "asset_master.csv": "ee253e05e1ea8cafdd038e405766f78280ad272e367c3a985ea68159bf465d06",
       "asset_relation.csv": "6a5fb689df2ad57aeb6731b4c763a6cd9b84b1dae863212e7eebfcf707e0217b",
-      "compressor_sensor_observation.csv": "42e86061c98a7abda583134daf8c0947d98805e655b0457e7e8251019f1d4bea",
-      "cnc_sensor_observation.csv": "4e8dc417f53760f271bab3d44b86c9a1106f093f4adc087c9ad41fea452216db"
+      "compressor_sensor_observation.csv": "2b0e5620c19d74d16371392d7c7dd8c84499b4b128b91b7274239d6f1bb5895b",
+      "cnc_sensor_observation.csv": "50f8b7540142ce0522b3c1194d2b3d474e36490aaa8d102c5f978b412f30f848"
     },
     "CASE-RR-004": {
-      "case.json": "8757ab5d7631a55d79a6d993b7486d106a6d56831890bceaf7d5594c24555705",
+      "case.json": "0be5005e71a7cdeb294a8048a5837de740aa1a9d958e7103c7795bc2a3c7a40f",
       "asset_master.csv": "ee253e05e1ea8cafdd038e405766f78280ad272e367c3a985ea68159bf465d06",
       "asset_relation.csv": "6a5fb689df2ad57aeb6731b4c763a6cd9b84b1dae863212e7eebfcf707e0217b",
-      "compressor_sensor_observation.csv": "42e86061c98a7abda583134daf8c0947d98805e655b0457e7e8251019f1d4bea",
-      "cnc_sensor_observation.csv": "d1146e2e7d81e5f909c053e211292816cdef5e650daeb2e4e4bcfd556fc33a6f"
+      "compressor_sensor_observation.csv": "2b0e5620c19d74d16371392d7c7dd8c84499b4b128b91b7274239d6f1bb5895b",
+      "cnc_sensor_observation.csv": "7e2b67cf55950449c59d01f692f9a1434a4ea036263b45c9c0cc503c19b40c0a"
     },
     "CASE-RR-005": {
-      "case.json": "d5298671a94e6a72c1ea32387c78586dbf6d69dd28784fecdca97fc804382ff3",
+      "case.json": "b40c3851a29d35fb387741c4712372fb65272beb010c08f209c85438e01b7413",
       "asset_master.csv": "ee253e05e1ea8cafdd038e405766f78280ad272e367c3a985ea68159bf465d06",
       "asset_relation.csv": "6a5fb689df2ad57aeb6731b4c763a6cd9b84b1dae863212e7eebfcf707e0217b",
-      "compressor_sensor_observation.csv": "97b895f723645d88b539107e1cb7ad7d50dd9c0ca65ad63a1569b41b215ba847",
-      "cnc_sensor_observation.csv": "6c59877c1874c210c3ddcf76c47f477f317d92f55c5c7d8fd7af22bde2699ef2"
+      "compressor_sensor_observation.csv": "4693709d869ef08ab2fef918be60c938c506230d92c5340b2b2c1ebbc6bf28d8",
+      "cnc_sensor_observation.csv": "ee6f02e69b23d9d555efd889aacc569d2a0bfa6335540509c88fd3de183fd6aa"
     },
     "CASE-RR-006": {
-      "case.json": "7ea820c2090f62328ecc3e6b175c7264a16d8d59396bb28f63e2369af05e2c29",
+      "case.json": "2afe3e84ea1f14b923ee31011f36c98750154c53c5730f84c45468f2d8e6f67b",
       "asset_master.csv": "ee253e05e1ea8cafdd038e405766f78280ad272e367c3a985ea68159bf465d06",
       "asset_relation.csv": "6a5fb689df2ad57aeb6731b4c763a6cd9b84b1dae863212e7eebfcf707e0217b",
-      "compressor_sensor_observation.csv": "97b895f723645d88b539107e1cb7ad7d50dd9c0ca65ad63a1569b41b215ba847",
-      "cnc_sensor_observation.csv": "192e870eff280acf670cb1ab3eccec17fbc59e1e8a051262d231283b054fe1cd"
+      "compressor_sensor_observation.csv": "4693709d869ef08ab2fef918be60c938c506230d92c5340b2b2c1ebbc6bf28d8",
+      "cnc_sensor_observation.csv": "ef2bed9d704636b621154d720d31f8dd40df04485a212c96255b892f1b92ceba"
     },
     "CASE-RR-007": {
-      "case.json": "7bdf1ad05b71ba1131a81a2926f01c0cc8711ee0abb2de65a34e7a06a01b95d3",
+      "case.json": "ed8db337a02714faae339872e4911ccccde6950a578d4c2177d67c1f00d2b4aa",
       "asset_master.csv": "ee253e05e1ea8cafdd038e405766f78280ad272e367c3a985ea68159bf465d06",
       "asset_relation.csv": "6a5fb689df2ad57aeb6731b4c763a6cd9b84b1dae863212e7eebfcf707e0217b",
-      "compressor_sensor_observation.csv": "97b895f723645d88b539107e1cb7ad7d50dd9c0ca65ad63a1569b41b215ba847",
-      "cnc_sensor_observation.csv": "16af5b482073475808212393d0cd30442e957f6ec8c9df4c62188e789923175c"
+      "compressor_sensor_observation.csv": "4693709d869ef08ab2fef918be60c938c506230d92c5340b2b2c1ebbc6bf28d8",
+      "cnc_sensor_observation.csv": "beb4b502e68656c859a55760b4e4073c91b280326f2010b08cbd89e91d0a30f2"
     },
     "CASE-RR-008": {
-      "case.json": "1f844aeb22e05a8140303dc6290ee93f0bd44beec38f0f8f2efbdb5f85bff31c",
+      "case.json": "e8677e2974562737f6ced50dcb0a65de8a617e7f3afe2771aa08a21e3d908bef",
       "asset_master.csv": "ee253e05e1ea8cafdd038e405766f78280ad272e367c3a985ea68159bf465d06",
       "asset_relation.csv": "6a5fb689df2ad57aeb6731b4c763a6cd9b84b1dae863212e7eebfcf707e0217b",
-      "compressor_sensor_observation.csv": "97b895f723645d88b539107e1cb7ad7d50dd9c0ca65ad63a1569b41b215ba847",
-      "cnc_sensor_observation.csv": "91ac91a3b450eb406eed7dfc3959357f5bfa5aca0fb2c01633a97a15376a2f4c"
+      "compressor_sensor_observation.csv": "4693709d869ef08ab2fef918be60c938c506230d92c5340b2b2c1ebbc6bf28d8",
+      "cnc_sensor_observation.csv": "6d2f5801c7d18011b28bb7cd90f6826c6f6c25c818b18162d4ab1bcc1f24f5d2"
     },
     "CASE-RR-009": {
-      "case.json": "631b1afb757c36dcc1fdc47426caf0b29c80b297fa915c506e81e29e2b282f1d",
+      "case.json": "30f41eb5868a62070918c35025778e782b0d3b32a84be332684d63165aa59a08",
       "asset_master.csv": "0ff8e9594ab0a8f9c9aeb68fe680185874e527b785c0761669ecece4c040bac7",
       "asset_relation.csv": "2caeaa3e635bfe9972a63729f353cda1e389ea2e720946dc54e9e72ddf2167d2",
-      "compressor_sensor_observation.csv": "6b9def82afb30b8b4c1ca58472073b4bd6a18a0c881f251ca830306b354305a9",
-      "cnc_sensor_observation.csv": "2b95c1694ea194c21e861cb3369910642ba06ee78f6ded62606de063ba382cea"
+      "compressor_sensor_observation.csv": "6aaaed6b9859bd34059d5a08ecdfc0d13bb679ab174006b6d6d7bee0e52418f8",
+      "cnc_sensor_observation.csv": "68852d1641defed91dc77fedd2350a4727ef58f51c95af967ef3058c66691fc8"
     },
     "CASE-RR-010": {
-      "case.json": "ae320507d330d7871bdf41d95398c6327d137318c6e6bb641d1d54333cc3ba52",
+      "case.json": "0f1346bc5739a986574f89439659dd40b6aacc2c84f28038ac5a6b5b46307d56",
       "asset_master.csv": "0ff8e9594ab0a8f9c9aeb68fe680185874e527b785c0761669ecece4c040bac7",
       "asset_relation.csv": "2caeaa3e635bfe9972a63729f353cda1e389ea2e720946dc54e9e72ddf2167d2",
-      "compressor_sensor_observation.csv": "6b9def82afb30b8b4c1ca58472073b4bd6a18a0c881f251ca830306b354305a9",
-      "cnc_sensor_observation.csv": "87de0a835edcb75b753f670eab8878e4d0591fa823247efc7d5c3aef6afc12d5"
+      "compressor_sensor_observation.csv": "6aaaed6b9859bd34059d5a08ecdfc0d13bb679ab174006b6d6d7bee0e52418f8",
+      "cnc_sensor_observation.csv": "405469a3f789fed5b7130ec2abd8cd6d056d62b28feba4918eaddab24bff8201"
     },
     "CASE-RR-011": {
-      "case.json": "e26867a8545badca09e90a62856f0e7a399fe440e30f21276163636f4da58f99",
+      "case.json": "28fcc4596421c5d8f0950506b5e06e31ad6ddff2b3661712723b8fcbf74c2594",
       "asset_master.csv": "0ff8e9594ab0a8f9c9aeb68fe680185874e527b785c0761669ecece4c040bac7",
       "asset_relation.csv": "2caeaa3e635bfe9972a63729f353cda1e389ea2e720946dc54e9e72ddf2167d2",
-      "compressor_sensor_observation.csv": "6b9def82afb30b8b4c1ca58472073b4bd6a18a0c881f251ca830306b354305a9",
-      "cnc_sensor_observation.csv": "6a3b05c2d5bcd7236358d4305a838711d645a9c379e8dcf2a4d88c8cdd2a800c"
+      "compressor_sensor_observation.csv": "6aaaed6b9859bd34059d5a08ecdfc0d13bb679ab174006b6d6d7bee0e52418f8",
+      "cnc_sensor_observation.csv": "5aebbee00aba6e091dea0537fd8aae51f05071aca6e5790008a9e81769441493"
     },
     "CASE-RR-012": {
-      "case.json": "cb06eb2875256b6537f1d49ad2e37989b0dda86a69cd18864fda66536f11e379",
+      "case.json": "3edfb8d333d203da6f16da111247f29c4358999ee9edbbcb14d9c531cc064da1",
       "asset_master.csv": "0ff8e9594ab0a8f9c9aeb68fe680185874e527b785c0761669ecece4c040bac7",
       "asset_relation.csv": "2caeaa3e635bfe9972a63729f353cda1e389ea2e720946dc54e9e72ddf2167d2",
-      "compressor_sensor_observation.csv": "6b9def82afb30b8b4c1ca58472073b4bd6a18a0c881f251ca830306b354305a9",
-      "cnc_sensor_observation.csv": "cc508b6fe1c3b23f31f6bc56d0e351adb089eaa3e260a6230b20377de10c45fd"
+      "compressor_sensor_observation.csv": "6aaaed6b9859bd34059d5a08ecdfc0d13bb679ab174006b6d6d7bee0e52418f8",
+      "cnc_sensor_observation.csv": "dae122da9545ef7722e33c36fa535c7aaffd64138cd3585a4d6644167d9b25c0"
     },
     "CASE-RR-013": {
-      "case.json": "3b49e73ec8b2e4db3b528d6fd82364a1ce0955461271d630e6c1d4861b7ecc3f",
+      "case.json": "e6faba571d8d44d1e4d467af63d6c69327953cdb9560c3e9d4ec12c39365bf1c",
       "asset_master.csv": "0ff8e9594ab0a8f9c9aeb68fe680185874e527b785c0761669ecece4c040bac7",
       "asset_relation.csv": "2caeaa3e635bfe9972a63729f353cda1e389ea2e720946dc54e9e72ddf2167d2",
-      "compressor_sensor_observation.csv": "a77dcb2a28367d19c4134056430b689a4c35c15e3425c8c22f6040057904813d",
-      "cnc_sensor_observation.csv": "c4300a4bca507312e360f0e902793199dc006ff701f74dcd316c561e2a825ff9"
+      "compressor_sensor_observation.csv": "9c7f63d77da917778822244e075db7e27332c848967e97611e68159d9daced6f",
+      "cnc_sensor_observation.csv": "f9e31dd9af84ea79efa5a18d0baed1a0c8aea787fdd54f78deea1877cb5d017a"
     },
     "CASE-RR-014": {
-      "case.json": "ec371c0443547aa993c2b3ff71b2fe9591d858bc202544097f53369e3e8c63dd",
+      "case.json": "dcea1e9af25e6878597dc3d1df00d6aad9012edd20188aa4822317d04d2b5f46",
       "asset_master.csv": "0ff8e9594ab0a8f9c9aeb68fe680185874e527b785c0761669ecece4c040bac7",
       "asset_relation.csv": "2caeaa3e635bfe9972a63729f353cda1e389ea2e720946dc54e9e72ddf2167d2",
-      "compressor_sensor_observation.csv": "a77dcb2a28367d19c4134056430b689a4c35c15e3425c8c22f6040057904813d",
-      "cnc_sensor_observation.csv": "05b3673a72eb7831fef29f53a3dddbec2c8a5dd7a10949124f0946f2b5515797"
+      "compressor_sensor_observation.csv": "9c7f63d77da917778822244e075db7e27332c848967e97611e68159d9daced6f",
+      "cnc_sensor_observation.csv": "6a8cbcdde352c68c157e105806ab3beead5f602eb0b19821f39f44eed1863542"
     },
     "CASE-RR-015": {
-      "case.json": "5dbe3750abddab1d6376292b61ff0a5ddf5d792b0a309d4409363f400cf1f0c9",
+      "case.json": "ca7a6869eacae990b73edc0bbed57245c1deccd38df0b87b92a490558c23cfb3",
       "asset_master.csv": "0ff8e9594ab0a8f9c9aeb68fe680185874e527b785c0761669ecece4c040bac7",
       "asset_relation.csv": "2caeaa3e635bfe9972a63729f353cda1e389ea2e720946dc54e9e72ddf2167d2",
-      "compressor_sensor_observation.csv": "a77dcb2a28367d19c4134056430b689a4c35c15e3425c8c22f6040057904813d",
-      "cnc_sensor_observation.csv": "433d2ea89678bc46d87b2ae66a9f39b2b2a77cf0341685989620bd7337d0393a"
+      "compressor_sensor_observation.csv": "9c7f63d77da917778822244e075db7e27332c848967e97611e68159d9daced6f",
+      "cnc_sensor_observation.csv": "1b2b1d50d2b0d71f7351a9bbadddce147a415f0bc94d9854b9db78e5d1b9f70f"
     },
     "CASE-RR-016": {
-      "case.json": "2850b4d3eeb96a15c714d7d4d6bed6e29c892f4f91ef961f851dec1896008566",
+      "case.json": "74f67cbc100b279a4e3cf646546a307f732fd3d06d2fe4a84fc78eef42cbbd27",
       "asset_master.csv": "0ff8e9594ab0a8f9c9aeb68fe680185874e527b785c0761669ecece4c040bac7",
       "asset_relation.csv": "2caeaa3e635bfe9972a63729f353cda1e389ea2e720946dc54e9e72ddf2167d2",
-      "compressor_sensor_observation.csv": "a77dcb2a28367d19c4134056430b689a4c35c15e3425c8c22f6040057904813d",
-      "cnc_sensor_observation.csv": "2fa8b29a54ffe9a2912b7dc63e82e6575365f4fed88e4903f4533ebe93fa5752"
+      "compressor_sensor_observation.csv": "9c7f63d77da917778822244e075db7e27332c848967e97611e68159d9daced6f",
+      "cnc_sensor_observation.csv": "7d9b0308abd5b640df8b3eb290ae96f2190c12c4dcfc8ab14baac43d03bbc83d"
     },
     "CASE-RR-017": {
-      "case.json": "b20674ab1477acd3609d8327366bd4c0fcd2bf2e94cba1673acce98607144352",
+      "case.json": "f9e61e7efee453f47e8f621def76068a68ce94c53a2b4451e3560927f624efd5",
       "asset_master.csv": "c51ffd94bee12e4ee9af861fcf53d5f75eb02b11b3687ebb830a49044d62ddde",
       "asset_relation.csv": "f2269426d4b359029aa24b0b2d9e4ad8afba1179d70b12bdaac6f583857bb314",
-      "compressor_sensor_observation.csv": "a62bd4059b446a7f359fe449f2ec82ed07632e4e6d9ae5441e94b138fdb530e0",
-      "cnc_sensor_observation.csv": "68b7161653794e4b7e0bdef5e3e7a7ef4370bad3462357ce0624d199ce254b20"
+      "compressor_sensor_observation.csv": "a155255a77321199e7cea5446a9095687292bdf7aede9243ecbc43e525edf129",
+      "cnc_sensor_observation.csv": "2e78c9531bd759d52866bfd17b468f6b021c374939f032b0de976393c77e817c"
     },
     "CASE-RR-018": {
-      "case.json": "729fa6fe6a56b66540cd6969bfd67dc80b6fae5fde8b643580c2d835a91028d7",
+      "case.json": "c6d5738abf8d7f3966e1f7cb5f907e8a7a61966eeb644515debb63f68d3569d0",
       "asset_master.csv": "0ff8e9594ab0a8f9c9aeb68fe680185874e527b785c0761669ecece4c040bac7",
       "asset_relation.csv": "2caeaa3e635bfe9972a63729f353cda1e389ea2e720946dc54e9e72ddf2167d2",
-      "compressor_sensor_observation.csv": "9ea92c811224e1695f0446b869aa6e8bba47ac115dccd792d885c644b290b1cc",
-      "cnc_sensor_observation.csv": "fa1baf930cc47a962c0a291858933d78421b2930e0e7f1faaf528afbcb6dacc0"
+      "compressor_sensor_observation.csv": "43aa97ba8dd5002b6b42355a890c55000179a3fb17f76a034378d7251a929736",
+      "cnc_sensor_observation.csv": "8b9c14e4bc975bd61d28ba275ead50d8006c296d7e2d99fdbcb77222f1a2b3e8"
     },
     "CASE-RR-019": {
-      "case.json": "bd0dd3ef63ce20348b84165121be796ca9a9bca0253c83a1e3aa3b8a09539ad1",
+      "case.json": "f600d7719d2b63bccb449a78efbc504d89398dac3d55064a1940083966b07f3c",
       "asset_master.csv": "0ff8e9594ab0a8f9c9aeb68fe680185874e527b785c0761669ecece4c040bac7",
       "asset_relation.csv": "2caeaa3e635bfe9972a63729f353cda1e389ea2e720946dc54e9e72ddf2167d2",
-      "compressor_sensor_observation.csv": "1f23c4143767702e06ee035e112336b40938a78f0637396dac9722bc8a00f7bc",
-      "cnc_sensor_observation.csv": "5bb40b7ce8131d87437581b9554df64a34cdce810a219d062a30cc92e923b7c3"
+      "compressor_sensor_observation.csv": "abb48935e81f6bdc51c2a19aaa7532fbe5bd65f4bc26d58dc63fc2bdcc4692ac",
+      "cnc_sensor_observation.csv": "0b926ee0505e887cf855111328eec3d78bfd5ffca7c19950dde53a5c59e1402a"
     },
     "CASE-RR-020": {
-      "case.json": "d160cf99050ff7d7fff85033b0f43938707bd3f74a8fcd35fc4e13cc828f8c3e",
+      "case.json": "95b1547350b846e497c59b20ee2e1df4b82f49b4f52e5efcd4825f3efdfbebbd",
       "asset_master.csv": "ee253e05e1ea8cafdd038e405766f78280ad272e367c3a985ea68159bf465d06",
       "asset_relation.csv": "6a5fb689df2ad57aeb6731b4c763a6cd9b84b1dae863212e7eebfcf707e0217b",
-      "compressor_sensor_observation.csv": "e5212dfabe0babbf57a5871cfcf6786e01f834f28894c0c5a484c44c7a524ef1",
-      "cnc_sensor_observation.csv": "6a3ea08d7e9b79a1b228bd4337f61ffdf4e9e8d31ef5c7a1bb4ee40eba3c50db"
+      "compressor_sensor_observation.csv": "be783e4c61424aba1b78b7b36308b9f2d6758adf0b9afdbfd01948a16a726199",
+      "cnc_sensor_observation.csv": "1265a8263603d2753a44945e548c5515792806ddfb873b5ca830c1f5d98f51a3"
     }
   }
 }

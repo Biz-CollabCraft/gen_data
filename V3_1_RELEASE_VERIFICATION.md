@@ -10,7 +10,7 @@
 dataset     canonical-ai4i-physics-v3.1
 model       independent-logreg-v3.1
 experiment  relation-reasoning-agent-eval-v3.1
-period      2026-08-01T00:00:00+09:00 ~ 2026-08-31T00:00:00+09:00
+period      2026-08-01T00:00:00+09:00 ~ 2026-09-13T00:00:00+09:00 (last sensor tick 2026-09-12T23:50:00+09:00)
 seed        42
 profile     balanced_demo
 ```
@@ -36,10 +36,10 @@ canonical dataset + evaluation truth
 |---|---:|
 | Assets | 100 |
 | Relations | 80 |
-| Compressor observations | 86,400 |
-| CNC observations | 345,600 |
-| Production cycles | 170,875 |
-| Maintenance events | 790 |
+| Compressor observations | 123,840 |
+| CNC observations | 495,360 |
+| Production cycles | 244,929 |
+| Maintenance events | 1,151 |
 | Failure recovery events | 76 |
 | Public agent cases | 20 |
 | Prediction timeline | 68,208 |
@@ -60,7 +60,7 @@ canonical dataset + evaluation truth
 ```text
 corr(air, process)    0.919768
 corr(rpm, torque)    -0.845823
-process below air     0 / 345600
+process below air     0 / 495360
 PWF                  14 / 14
 HDF                  21 / 21
 OSF                  11 / 11

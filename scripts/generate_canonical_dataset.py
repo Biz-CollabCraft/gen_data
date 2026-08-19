@@ -463,10 +463,12 @@ def coupled_cnc_values(
 
     if component == "PWF":
         target = pwf_target_power(episode.event_id)
-        if target < POWER_LOW_W:
-            # Keep low-power failures inside the supported RPM envelope by
-            # reducing torque before solving the exact power equation.
-            torque = torque + physical_ramp * (34.0 - torque)
+        # Keep both low- and high-power failures inside the supported RPM
+        # envelope before solving the exact power equation.  Without this,
+        # a high-power target combined with an unusually low torque can
+        # require >3200 RPM and the final safety clamp would move the labeled
+        # failure back inside the normal 3.5-9.0 kW band.
+        torque = torque + physical_ramp * (34.0 - torque)
         normal_power = power_w(torque, rpm)
         blended_power = normal_power + physical_ramp * (target - normal_power)
         rpm = blended_power * 60.0 / (2.0 * math.pi * max(torque, 1.0))
@@ -935,7 +937,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Generate canonical independent source data")
     parser.add_argument("--root", default=str(Path(__file__).resolve().parents[1]))
     parser.add_argument("--start-at", default="2026-08-01T00:00:00+09:00")
-    parser.add_argument("--days", type=int, default=30)
+    parser.add_argument("--days", type=int, default=43)
     parser.add_argument("--interval-minutes", type=int, default=10)
     parser.add_argument("--product-cycle-minutes", type=int, default=20)
     parser.add_argument("--seed", type=int, default=42)
