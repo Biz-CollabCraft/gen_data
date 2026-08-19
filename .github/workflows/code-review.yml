@@ -52,6 +52,7 @@ jobs:
     permissions:
       actions: read
       contents: read
+      issues: write
       id-token: write
       pull-requests: write
     steps:
@@ -62,7 +63,69 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Plan AI review spend
+        id: plan
+        env:
+          BASE_SHA: ${{ inputs.base_sha }}
+          HEAD_SHA: ${{ inputs.head_sha }}
+          EXPLICIT_REVIEW: ${{ contains(github.event.pull_request.labels.*.name, 'ai-review') }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t changed_files < <(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
+          run=true
+          reason="semantic source/config change"
+          docs_only=true
+          lockfile_only=true
+          for path in "${changed_files[@]}"; do
+            case "$path" in
+              docs/*|README.md|CANONICAL_V3_1.md|OWNERSHIP_AND_MIGRATION.md|SCHEMA.md) ;;
+              *) docs_only=false ;;
+            esac
+            [[ "$path" == "requirements-lock.txt" ]] || lockfile_only=false
+          done
+          if [[ "$EXPLICIT_REVIEW" != "true" ]]; then
+            if [[ "${#changed_files[@]}" -eq 0 ]]; then
+              run=false; reason="no changed files"
+            elif [[ "$docs_only" == "true" ]]; then
+              run=false; reason="documentation-only change"
+            elif [[ "$lockfile_only" == "true" ]]; then
+              run=false; reason="generated lockfile-only change"
+            elif git diff --quiet -w "$BASE_SHA" "$HEAD_SHA"; then
+              run=false; reason="whitespace-only change"
+            fi
+          else
+            reason="explicit ai-review request"
+          fi
+
+          if [[ "$docs_only" == "true" ]]; then
+            tier=simple
+            model_id=gemini-3.5-flash-lite
+            model_display_name="Gemini 3.5 Flash-Lite"
+            max_output_tokens=4000
+            thinking_level=""
+            prompt_char_budget=160000
+          else
+            tier=reasoning
+            model_id=gemini-3.7-flash
+            model_display_name="Gemini 3.7 Flash"
+            max_output_tokens=6000
+            thinking_level=MEDIUM
+            prompt_char_budget=360000
+          fi
+          {
+            echo "run=$run"
+            echo "reason=$reason"
+            echo "tier=$tier"
+            echo "model_id=$model_id"
+            echo "model_display_name=$model_display_name"
+            echo "max_output_tokens=$max_output_tokens"
+            echo "thinking_level=$thinking_level"
+            echo "prompt_char_budget=$prompt_char_budget"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Collect source-validation failure evidence
+        if: steps.plan.outputs.run == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           VALIDATION_JOB_RESULT: ${{ inputs.validation_result }}
@@ -105,6 +168,7 @@ jobs:
           fi
 
       - name: Prepare pull request review context
+        if: steps.plan.outputs.run == 'true'
         env:
           VALIDATION_JOB_RESULT: ${{ inputs.validation_result }}
           PACKAGE_VERIFIED: ${{ inputs.package_verified }}
@@ -117,6 +181,10 @@ jobs:
           PR_NUMBER: ${{ inputs.pr_number }}
           PR_TITLE: ${{ inputs.pr_title }}
           PR_BODY: ${{ inputs.pr_body }}
+          GEMINI_REVIEW_MODEL: ${{ steps.plan.outputs.model_id }}
+          GEMINI_REVIEW_MODEL_DISPLAY_NAME: ${{ steps.plan.outputs.model_display_name }}
+          GEMINI_REVIEW_TIER: ${{ steps.plan.outputs.tier }}
+          GEMINI_REVIEW_PROMPT_CHAR_BUDGET: ${{ steps.plan.outputs.prompt_char_budget }}
         run: |
           python3 - <<'PY'
           import json
@@ -132,12 +200,17 @@ jobs:
           truth_isolation_verified = os.environ["TRUTH_ISOLATION_VERIFIED"].lower() == "true"
           runtime_smoke_verified = os.environ["RUNTIME_SMOKE_VERIFIED"].lower() == "true"
           release_package_verified = os.environ["RELEASE_PACKAGE_VERIFIED"].lower() == "true"
+          review_tier = os.environ["GEMINI_REVIEW_TIER"]
+          review_model = os.environ["GEMINI_REVIEW_MODEL"]
+          review_model_display = os.environ["GEMINI_REVIEW_MODEL_DISPLAY_NAME"]
+          prompt_char_budget = int(os.environ["GEMINI_REVIEW_PROMPT_CHAR_BUDGET"])
+          reasoning = review_tier == "reasoning"
 
           validation_log = Path("/tmp/source-validation-job.log").read_text(
               encoding="utf-8", errors="replace"
           )
-          if len(validation_log) > 120_000:
-              validation_log = validation_log[-120_000:]
+          if len(validation_log) > 30_000:
+              validation_log = validation_log[-30_000:]
 
           def git_show(ref: str, path: str) -> str | None:
               result = subprocess.run(
@@ -164,7 +237,7 @@ jobs:
                   if content:
                       chunks.append(f"\n===== {path} =====\n{content}")
               trusted_contract = "\n".join(chunks)
-          trusted_contract = (trusted_contract or "")[:160_000]
+          trusted_contract = (trusted_contract or "")[:60_000 if reasoning else 35_000]
 
           name_status = subprocess.run(
               ["git", "diff", "--find-renames", "--name-status", base, head],
@@ -188,7 +261,7 @@ jobs:
               text=True,
               stdout=subprocess.PIPE,
           ).stdout
-          max_chars = 1_100_000
+          max_chars = 150_000 if reasoning else 80_000
           truncated = len(diff) > max_chars
           if truncated:
               diff = diff[:max_chars]
@@ -221,9 +294,9 @@ jobs:
               content = git_show(head, path)
               if content is None:
                   continue
-              content = content[:28_000]
+              content = content[:18_000 if reasoning else 10_000]
               block = f"\n===== HEAD:{path} =====\n{content}"
-              if critical_chars + len(block) > 200_000:
+              if critical_chars + len(block) > (80_000 if reasoning else 40_000):
                   break
               critical_chunks.append(block)
               critical_chars += len(block)
@@ -270,7 +343,7 @@ jobs:
                   f"- release ZIP build/extract/layout validation verified: `{str(release_package_verified).lower()}`.",
                   "- The separate `release-validation` workflow is not evidence for this PR unless explicitly supplied; do not claim it ran merely because the workflow file exists.",
                   "- Authentication uses a gen_data-only GitHub OIDC/WIF provider and a dedicated Vertex AI review service account.",
-                  "- The model is Vertex AI `gemini-3.6-flash` through the global endpoint, runtime-confirmed by this workflow when this step succeeds.",
+                  f"- The selected model is Vertex AI `{review_model}` ({review_tier} tier), runtime-confirmed by this workflow when this step succeeds.",
                   "",
                   "REVIEW METHOD:",
                   "- Try to falsify PR correctness claims; do not merely summarize.",
@@ -331,11 +404,11 @@ jobs:
                   f"PR_NUMBER: {os.environ['PR_NUMBER']}",
                   "PR_TITLE:",
                   "---",
-                  os.environ.get("PR_TITLE", ""),
+                  os.environ.get("PR_TITLE", "")[:1000],
                   "---",
                   "PR_BODY:",
                   "---",
-                  os.environ.get("PR_BODY", ""),
+                  os.environ.get("PR_BODY", "")[:8000],
                   "---",
                   "CHANGED_FILES:",
                   "---",
@@ -355,18 +428,26 @@ jobs:
                   "---",
               ]
           )
+          prompt_truncated = len(prompt) > prompt_char_budget
+          if prompt_truncated:
+              prompt = prompt[:prompt_char_budget] + "\n\n[INPUT TRUNCATED BY REVIEW COST BUDGET]\n"
           Path("/tmp/code-review-prompt.md").write_text(prompt, encoding="utf-8")
           print(
               "review context:",
+              f"tier={review_tier}",
+              f"model={review_model_display}",
               f"contract_source={contract_source}",
               f"critical_chars={len(critical_context)}",
               f"diff_chars={len(diff)}",
+              f"prompt_chars={len(prompt)}",
+              f"prompt_truncated={prompt_truncated}",
               f"validation_result={validation_result}",
               f"readiness_ceiling={readiness_ceiling}",
           )
           PY
 
       - name: Authenticate to Google Cloud with GitHub OIDC
+        if: steps.plan.outputs.run == 'true'
         id: auth
         uses: google-github-actions/auth@v3
         with:
@@ -377,24 +458,33 @@ jobs:
           access_token_scopes: https://www.googleapis.com/auth/cloud-platform
           create_credentials_file: false
 
-      - name: Review with Gemini 3.6 Flash on Vertex AI
+      - name: Review with ${{ steps.plan.outputs.model_display_name }} on Vertex AI
+        if: steps.plan.outputs.run == 'true'
         env:
           GCP_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
           REVIEW_BASE_SHA: ${{ inputs.base_sha }}
           REVIEW_HEAD_SHA: ${{ inputs.head_sha }}
+          GEMINI_REVIEW_MODEL: ${{ steps.plan.outputs.model_id }}
+          GEMINI_REVIEW_MODEL_DISPLAY_NAME: ${{ steps.plan.outputs.model_display_name }}
+          GEMINI_REVIEW_MAX_OUTPUT_TOKENS: ${{ steps.plan.outputs.max_output_tokens }}
+          GEMINI_REVIEW_THINKING_LEVEL: ${{ steps.plan.outputs.thinking_level }}
         run: |
           python3 - <<'PY'
           import json
+          import os
           from pathlib import Path
 
           prompt = Path("/tmp/code-review-prompt.md").read_text(encoding="utf-8")
+          generation_config = {
+              "temperature": 0.1,
+              "maxOutputTokens": int(os.environ["GEMINI_REVIEW_MAX_OUTPUT_TOKENS"]),
+          }
+          thinking_level = os.environ.get("GEMINI_REVIEW_THINKING_LEVEL", "").strip()
+          if thinking_level:
+              generation_config["thinkingConfig"] = {"thinkingLevel": thinking_level}
           payload = {
               "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-              "generationConfig": {
-                  "temperature": 0.1,
-                  "maxOutputTokens": 32768,
-                  "thinkingConfig": {"thinkingLevel": "MEDIUM"},
-              },
+              "generationConfig": generation_config,
           }
           Path("/tmp/vertex-request.json").write_text(
               json.dumps(payload, ensure_ascii=False), encoding="utf-8"
@@ -407,7 +497,7 @@ jobs:
             -H "Authorization: Bearer ${GCP_ACCESS_TOKEN}" \
             -H "Content-Type: application/json" \
             --data-binary @/tmp/vertex-request.json \
-            "https://aiplatform.googleapis.com/v1/projects/flai-oosuhada-20260506/locations/global/publishers/google/models/gemini-3.6-flash:generateContent" \
+            "https://aiplatform.googleapis.com/v1/projects/flai-oosuhada-20260506/locations/global/publishers/google/models/${GEMINI_REVIEW_MODEL}:generateContent" \
             > /tmp/vertex-response.json
 
           python3 - <<'PY'
@@ -489,9 +579,9 @@ jobs:
           usage = payload.get("usageMetadata", {})
           header = (
               "<!-- automated-vertex-gemini-review -->\n"
-              "## Gemini 3.6 Flash 자동 코드 리뷰\n\n"
+              f"## {os.environ['GEMINI_REVIEW_MODEL_DISPLAY_NAME']} 자동 코드 리뷰\n\n"
               f"검토 대상 commit: `{os.environ['REVIEW_HEAD_SHA']}`  \n"
-              "실행 환경: Google Cloud Vertex AI · GitHub OIDC/WIF  \n"
+              f"실행 환경: Google Cloud Vertex AI · GitHub OIDC/WIF · `{os.environ['GEMINI_REVIEW_MODEL']}`  \n"
               "이 리뷰는 같은 PR의 이전 자동 리뷰보다 최신 commit을 대상으로 하며 이전 자동 리뷰를 대체합니다.\n\n"
           )
           Path("/tmp/code-review.md").write_text(header + review + "\n", encoding="utf-8")
@@ -506,6 +596,7 @@ jobs:
           PY
 
       - name: Publish GitHub pull request review
+        if: steps.plan.outputs.run == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ inputs.pr_number }}
@@ -514,3 +605,13 @@ jobs:
             --repo "$GITHUB_REPOSITORY" \
             --comment \
             --body-file /tmp/code-review.md
+
+      - name: Consume one-shot ai-review label
+        if: always() && contains(github.event.pull_request.labels.*.name, 'ai-review')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+        run: |
+          gh api --method DELETE \
+            "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/labels/ai-review" \
+            >/dev/null 2>&1 || true
