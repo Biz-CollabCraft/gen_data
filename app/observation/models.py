@@ -22,6 +22,7 @@ class SensorRecord:
     asset_type: str
     site_id: str
     cell_id: str
+    source_kind: str = "simulation"
 
     def __post_init__(self) -> None:
         if not self.run_id:
@@ -34,6 +35,8 @@ class SensorRecord:
             raise ValueError("observed_at must be timezone-aware")
         if not isinstance(self.measurements, dict) or not self.measurements:
             raise ValueError("measurements must be a non-empty mapping")
+        if self.source_kind not in {"simulation", "opcua"}:
+            raise ValueError(f"unsupported source_kind: {self.source_kind}")
 
     @property
     def correlation_key(self) -> tuple[str, int, str]:

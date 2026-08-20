@@ -2,7 +2,8 @@
 
 ## Invariant
 
-센서값은 `SimulationProducer`에서 한 번만 계산한다.
+simulation 센서값은 `SimulationProducer`에서 한 번만 계산한다. 실제 OPC UA source는
+SDK subscription에서 받은 DataValue를 재계산하지 않고 `SensorRecord`로 정규화한다.
 
 ```text
 existing physics / sensor functions
@@ -13,6 +14,14 @@ SensorRecord
    ├─ SourceRecordWriter → source/sensor_records.jsonl
    ├─ OpcUaPublisher     → SDK DataValue + protocol provenance
    └─ CanonicalWriter    → 기존 canonical CSV contract
+
+configured OPC UA Server
+        ↓ asyncua subscription
+OpcUaCollector
+        ↓ reverse mapping / quality / timestamp
+SensorRecord(source_kind=opcua)
+   ├─ SourceRecordWriter → source/sensor_records.jsonl
+   └─ ProtocolRecordWriter → received provenance / quarantine
 ```
 
 writer나 protocol publisher는 physics 함수를 호출하지 않는다. protocol publish가 실패해도
@@ -38,14 +47,35 @@ protocol provenance는 `run_id`, `sequence`, `asset_id`, `measurement_key`, `nod
 `data_type`, `unit`, `value`, `status_code`, `source_timestamp`, `published_at`,
 `mapping_version`을 남긴다. 이것은 SDK publish provenance이지 wire packet capture가 아니다.
 
-실제 설비 endpoint subscription, DataValue 수신, reverse mapping, collector reconnect는
-현재 runtime에 구현하지 않는다.
+## OPC UA collector
+
+같은 `app/protocol/opcua.py`의 `OpcUaCollector`는 configured endpoint/NodeId만 구독한다.
+자동 browse/discovery나 범용 gateway를 만들지 않는다. versioned mapping template를
+역으로 적용해 `asset_id`, `asset_type`, `measurement_key`, `unit`을 결정하고 수신된
+DataValue 한 건을 measurement 하나를 가진 `SensorRecord(source_kind=opcua)`로 만든다.
+
+수신 provenance는 publish provenance와 구별하기 위해 `direction=received`를 기록하며
+`StatusCode`, `SourceTimestamp`, `ServerTimestamp`, `received_at`을 모두 보존한다.
+`observed_at`은 SourceTimestamp → ServerTimestamp → received_at 순으로 선택한다.
+OPC UA quality는 source quality일 뿐 Diagnosis 상태로 해석하지 않는다.
+
+최소 수집 안전장치는 다음과 같다.
+
+- connection loss → reconnect → configured Node re-subscribe
+- 같은 node/timestamp/value/status notification → in-process duplicate suppression
+- unknown/ambiguous Node → quarantine
+- mapping과 다른 DataType → quarantine
+- server가 engineering unit property를 노출하고 mapping unit과 다름 → quarantine
+
+collector는 SDK DataValue 수신 경계이며 wire packet capture가 아니다. PKI 자동화,
+NodeSet 자동 discovery, multi-server federation, late-arrival aggregation은 현재 범위가 아니다.
 
 ## RuntimeManager / FastAPI
 
 `RuntimeManager`가 run 중 producer, writers, OPC UA session, manifest를 소유한다.
-manual tick과 continuous loop 모두 같은 `process_tick`을 사용하고 stop 시 writer flush와
-OPC UA cleanup을 수행한다.
+simulation run의 manual tick과 continuous loop는 같은 `process_tick`을 사용한다.
+`source_kind=opcua` run은 subscription worker를 소유하며 manual tick은 지원하지 않는다.
+stop 시 writer flush와 OPC UA client/subscription cleanup을 수행한다.
 
 FastAPI는 control layer만 담당한다.
 
@@ -82,6 +112,7 @@ output/runs/{run_id}/
 ├── source/sensor_records.jsonl
 ├── protocol/provenance.jsonl
 ├── protocol/errors.jsonl
+├── protocol/quarantine.jsonl
 ├── canonical/
 │   ├── asset_master.csv
 │   ├── asset_relation.csv

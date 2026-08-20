@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -16,3 +17,7 @@ class StartRunRequest(BaseModel):
     speed: float = Field(default=60.0, gt=0)
     continuous: bool = True
     publish_opcua: bool = True
+    source_kind: Literal["simulation", "opcua"] = "simulation"
+    opcua_source_endpoint: str | None = None
+    opcua_node_ids: list[str] = Field(default_factory=list)
+    reconnect_seconds: float = Field(default=1.0, gt=0)

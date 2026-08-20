@@ -10,7 +10,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
-from app.protocol.opcua import OpcUaMapping, OpcUaPublisher
+from app.protocol.opcua import OpcUaCollector, OpcUaMapping, OpcUaPublisher
 from app.runtime.state import RunState
 from app.simulation.producer import SimulationProducer
 from app.storage.canonical_writer import CanonicalWriter
@@ -75,6 +75,7 @@ class _RunContext:
             status="running",
             started_at=now,
             current_observed_at=start_at,
+            source_kind="simulation",
         )
         self._closed = False
         if publish_opcua:
@@ -194,10 +195,12 @@ class _RunContext:
             "source": str(self.source_writer.path),
             "protocol_provenance": str(self.protocol_writer.provenance_path),
             "protocol_errors": str(self.protocol_writer.error_path),
+            "protocol_quarantine": str(self.protocol_writer.quarantine_path),
             "canonical": {path.name: str(path) for path in self.canonical_writer.paths},
             "counts": {
                 "source_records": self.source_writer.count,
                 "protocol_datavalues": self.protocol_writer.datavalue_count,
+                "quarantined_datavalues": self.protocol_writer.quarantine_count,
                 "canonical_observations": self.canonical_writer.observation_count,
             },
         }
@@ -232,6 +235,7 @@ class _RunContext:
             self.source_writer.path,
             self.protocol_writer.provenance_path,
             self.protocol_writer.error_path,
+            self.protocol_writer.quarantine_path,
             *self.canonical_writer.paths,
         ]
         checksums = {
@@ -244,6 +248,7 @@ class _RunContext:
             {
                 "schema_version": RUN_MANIFEST_SCHEMA_VERSION,
                 "run_id": self.run_id,
+                "source_kind": "simulation",
                 "seed": self.seed,
                 "scenario": self.rate_profile,
                 "generator_version": GENERATOR_VERSION,
@@ -265,6 +270,190 @@ class _RunContext:
         )
 
 
+class _OpcUaRunContext:
+    """Runtime context for configured-node OPC UA collection."""
+
+    def __init__(
+        self,
+        *,
+        run_id: str,
+        output_root: Path,
+        mapping_path: Path,
+        endpoint: str,
+        node_ids: list[str],
+        reconnect_seconds: float,
+    ) -> None:
+        self.run_id = run_id
+        self.output_root = output_root
+        self.run_dir = output_root / "runs" / run_id
+        self.run_dir.mkdir(parents=True, exist_ok=False)
+        self.manifest_path = self.run_dir / "run_manifest.json"
+        self.endpoint = endpoint
+        self.node_ids = list(dict.fromkeys(node_ids))
+        self.mapping = OpcUaMapping.load(mapping_path)
+        self.source_writer = SourceRecordWriter(self.run_dir / "source" / "sensor_records.jsonl")
+        self.protocol_writer = ProtocolRecordWriter(self.run_dir / "protocol")
+        self.stop_event = threading.Event()
+        self.lock = threading.RLock()
+        self.thread: threading.Thread | None = None
+        now = datetime.now(tz=timezone.utc)
+        self.state = RunState(
+            run_id=run_id,
+            status="running",
+            started_at=now,
+            current_observed_at=now,
+            source_kind="opcua",
+        )
+        self._closed = False
+        self.collector = OpcUaCollector(
+            endpoint=endpoint,
+            mapping=self.mapping,
+            run_id=run_id,
+            node_ids=self.node_ids,
+            on_record=self._on_record,
+            on_provenance=self._on_provenance,
+            on_quarantine=self._on_quarantine,
+            on_error=self._on_error,
+            reconnect_seconds=reconnect_seconds,
+        )
+        self._write_manifest()
+
+    def process_tick(self) -> RunState:
+        raise RuntimeError("manual tick is only supported for simulation source runs")
+
+    def run_loop(self) -> None:
+        try:
+            self.collector.run(self.stop_event)
+        finally:
+            if not self._closed:
+                self.finish("stopped")
+
+    def finish(self, terminal_status: str) -> RunState:
+        with self.lock:
+            if self._closed:
+                return self.state
+            self.stop_event.set()
+            self.flush()
+            self.source_writer.close()
+            self.protocol_writer.close()
+            self._refresh_counts()
+            self.state.status = "partial_failure" if self.state.failures else terminal_status
+            self.state.completed_at = datetime.now(tz=timezone.utc)
+            self._closed = True
+            self._write_manifest()
+            return self.state
+
+    def flush(self) -> None:
+        self.source_writer.flush()
+        self.protocol_writer.flush()
+
+    def outputs(self) -> dict[str, Any]:
+        return {
+            "run_id": self.run_id,
+            "run_manifest": str(self.manifest_path),
+            "source": str(self.source_writer.path),
+            "protocol_provenance": str(self.protocol_writer.provenance_path),
+            "protocol_errors": str(self.protocol_writer.error_path),
+            "protocol_quarantine": str(self.protocol_writer.quarantine_path),
+            "canonical": {},
+            "counts": {
+                "source_records": self.source_writer.count,
+                "protocol_datavalues": self.protocol_writer.datavalue_count,
+                "quarantined_datavalues": self.protocol_writer.quarantine_count,
+                "canonical_observations": 0,
+            },
+        }
+
+    def _on_record(self, record) -> None:
+        with self.lock:
+            try:
+                self.source_writer.write(record)
+                self.state.last_sequence = record.sequence
+                self.state.current_observed_at = record.observed_at
+            except Exception as exc:
+                self._append_failure("source", exc)
+            self._checkpoint()
+
+    def _on_provenance(self, payload: dict[str, Any]) -> None:
+        with self.lock:
+            try:
+                self.protocol_writer.write_provenance(payload)
+            except Exception as exc:
+                self._append_failure("protocol_provenance", exc)
+            self._checkpoint()
+
+    def _on_quarantine(self, payload: dict[str, Any]) -> None:
+        with self.lock:
+            self.protocol_writer.write_quarantine(payload)
+            self.state.failures.append({"stage": "opcua_quarantine", **payload})
+            self.state.status = "partial_failure"
+            self._checkpoint()
+
+    def _on_error(self, payload: dict[str, Any]) -> None:
+        with self.lock:
+            self.protocol_writer.write_error(payload)
+            self.state.failures.append(payload)
+            self.state.status = "partial_failure"
+            self._checkpoint()
+
+    def _append_failure(self, stage: str, exc: Exception) -> None:
+        payload = {
+            "stage": stage,
+            "error": f"{type(exc).__name__}: {exc}",
+            "recorded_at": datetime.now(tz=timezone.utc).isoformat(timespec="seconds"),
+        }
+        self.state.failures.append(payload)
+        self.state.status = "partial_failure"
+
+    def _checkpoint(self) -> None:
+        self.flush()
+        self._refresh_counts()
+        self._write_manifest()
+
+    def _refresh_counts(self) -> None:
+        self.state.source_record_count = self.source_writer.count
+        self.state.protocol_datavalue_count = self.protocol_writer.datavalue_count
+        self.state.canonical_observation_count = 0
+
+    def _write_manifest(self) -> None:
+        output_files = [
+            self.source_writer.path,
+            self.protocol_writer.provenance_path,
+            self.protocol_writer.error_path,
+            self.protocol_writer.quarantine_path,
+        ]
+        checksums = {
+            str(path.relative_to(self.run_dir)): sha256(path)
+            for path in output_files
+            if path.exists()
+        }
+        write_manifest(
+            self.manifest_path,
+            {
+                "schema_version": RUN_MANIFEST_SCHEMA_VERSION,
+                "run_id": self.run_id,
+                "source_kind": "opcua",
+                "endpoint": self.endpoint,
+                "node_ids": self.node_ids,
+                "mapping_version": self.mapping.mapping_version,
+                "started_at": self.state.started_at.isoformat(timespec="seconds"),
+                "completed_at": (
+                    self.state.completed_at.isoformat(timespec="seconds")
+                    if self.state.completed_at
+                    else None
+                ),
+                "status": self.state.status,
+                "source_record_count": self.source_writer.count,
+                "protocol_datavalue_count": self.protocol_writer.datavalue_count,
+                "quarantine_count": self.protocol_writer.quarantine_count,
+                "canonical_observation_count": 0,
+                "outputs": self.outputs(),
+                "checksums": checksums,
+                "partial_failures": self.state.failures,
+            },
+        )
+
+
 class RuntimeManager:
     def __init__(
         self,
@@ -276,7 +465,7 @@ class RuntimeManager:
         self.output_root = output_root
         self.mapping_path = mapping_path
         self.opcua_endpoint = opcua_endpoint
-        self._runs: dict[str, _RunContext] = {}
+        self._runs: dict[str, _RunContext | _OpcUaRunContext] = {}
         self._lock = threading.RLock()
 
     def start_run(
@@ -292,7 +481,13 @@ class RuntimeManager:
         speed: float = 60.0,
         continuous: bool = True,
         publish_opcua: bool = True,
+        source_kind: str = "simulation",
+        opcua_source_endpoint: str | None = None,
+        opcua_node_ids: list[str] | None = None,
+        reconnect_seconds: float = 1.0,
     ) -> dict[str, Any]:
+        if source_kind not in {"simulation", "opcua"}:
+            raise ValueError(f"unsupported source_kind: {source_kind}")
         if speed <= 0:
             raise ValueError("speed must be positive")
         if duration_hours <= 0:
@@ -307,21 +502,35 @@ class RuntimeManager:
             active = [run for run in self._runs.values() if not run._closed]
             if active:
                 raise RuntimeError(f"another run is active: {active[0].run_id}")
-            context = _RunContext(
-                run_id=resolved_id,
-                output_root=self.output_root,
-                mapping_path=self.mapping_path,
-                opcua_endpoint=self.opcua_endpoint,
-                start_at=resolved_start,
-                end_at=resolved_start + timedelta(hours=duration_hours),
-                interval_minutes=interval_minutes,
-                product_cycle_minutes=product_cycle_minutes,
-                seed=seed,
-                rate_profile=rate_profile,
-                speed=speed,
-                continuous=continuous,
-                publish_opcua=publish_opcua,
-            )
+            if source_kind == "opcua":
+                if not continuous:
+                    raise ValueError("OPC UA source runs require continuous=true")
+                if reconnect_seconds <= 0:
+                    raise ValueError("reconnect_seconds must be positive")
+                context = _OpcUaRunContext(
+                    run_id=resolved_id,
+                    output_root=self.output_root,
+                    mapping_path=self.mapping_path,
+                    endpoint=opcua_source_endpoint or self.opcua_endpoint,
+                    node_ids=opcua_node_ids or [],
+                    reconnect_seconds=reconnect_seconds,
+                )
+            else:
+                context = _RunContext(
+                    run_id=resolved_id,
+                    output_root=self.output_root,
+                    mapping_path=self.mapping_path,
+                    opcua_endpoint=self.opcua_endpoint,
+                    start_at=resolved_start,
+                    end_at=resolved_start + timedelta(hours=duration_hours),
+                    interval_minutes=interval_minutes,
+                    product_cycle_minutes=product_cycle_minutes,
+                    seed=seed,
+                    rate_profile=rate_profile,
+                    speed=speed,
+                    continuous=continuous,
+                    publish_opcua=publish_opcua,
+                )
             self._runs[resolved_id] = context
             if continuous:
                 context.thread = threading.Thread(

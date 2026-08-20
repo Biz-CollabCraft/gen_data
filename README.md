@@ -22,7 +22,7 @@ gen_data/
 ├── app/
 │   ├── simulation/          # 기존 physics 기반 단일 SensorRecord producer
 │   ├── observation/         # SensorRecord 내부 계약
-│   ├── protocol/            # asyncua OPC UA DataValue publisher
+│   ├── protocol/            # asyncua OPC UA publisher + configured-node collector
 │   ├── storage/             # source/protocol/canonical writer
 │   ├── runtime/             # run lifecycle / manual tick / safe stop
 │   └── api/                 # FastAPI control routes
@@ -100,10 +100,35 @@ GET  /health/live
 GET  /health/ready
 ```
 
-`RuntimeManager`가 기존 physics를 한 번 계산해 `SensorRecord`를 만들고, 같은 record를
-source JSONL, OPC UA SDK DataValue publish/provenance, canonical CSV에 투영합니다.
-OPC UA는 `asyncua` Server publisher이며 실제 설비 subscription/collector와 wire packet
-capture는 이 저장소의 현재 runtime 범위가 아닙니다.
+`source_kind=simulation`에서는 `RuntimeManager`가 기존 physics를 한 번 계산해
+`SensorRecord`를 만들고, 같은 record를 source JSONL, OPC UA SDK DataValue
+publish/provenance, canonical CSV에 투영합니다.
+
+`source_kind=opcua`에서는 configured endpoint와 NodeId 목록에 실제 `asyncua`
+subscription을 생성하고 수신 `DataValue`를 동일 `SensorRecord` 경계로 정규화합니다.
+`StatusCode`, `SourceTimestamp`, `ServerTimestamp`, `received_at`을 provenance로 보존하고,
+연결이 끊기면 reconnect 후 subscription을 재생성합니다. unknown/ambiguous Node와
+잘못된 DataType/unit은 `protocol/quarantine.jsonl`에 격리하며 동일 notification은
+in-process dedup합니다. 이 기능은 SDK 수집 경계이며 실제 wire packet capture는 아닙니다.
+
+OPC UA source run 예시:
+
+```json
+{
+  "run_id": "plant-opcua-001",
+  "source_kind": "opcua",
+  "opcua_source_endpoint": "opc.tcp://127.0.0.1:4840/plant/",
+  "opcua_node_ids": [
+    "ns=2;s=CNC-S01-L01-01.torque_nm"
+  ],
+  "reconnect_seconds": 1.0,
+  "continuous": true
+}
+```
+
+실제 OPC UA notification은 measurement 단위로 들어오므로 collector는 불완전한
+DataValue 묶음을 기존 flat Canonical V3.1 row로 위조하지 않습니다. 기존 canonical
+CSV/manifest 계약은 완전한 simulation asset/tick snapshot에서 그대로 유지됩니다.
 
 ## 빠른 검증
 
