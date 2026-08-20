@@ -1,0 +1,18 @@
+{
+  "mapping_version": "1",
+  "namespace_uri": "urn:biz-collabcraft:gen-data:simulation",
+  "nodes": {
+    "compressor.is_operating": {"node_id": "ns=2;s={asset_id}.is_operating", "data_type": "Boolean", "unit": "boolean"},
+    "compressor.voltage_raw": {"node_id": "ns=2;s={asset_id}.voltage_raw", "data_type": "Double", "unit": "raw"},
+    "compressor.rotation_raw": {"node_id": "ns=2;s={asset_id}.rotation_raw", "data_type": "Double", "unit": "raw"},
+    "compressor.pressure_raw": {"node_id": "ns=2;s={asset_id}.pressure_raw", "data_type": "Double", "unit": "raw"},
+    "compressor.vibration_raw": {"node_id": "ns=2;s={asset_id}.vibration_raw", "data_type": "Double", "unit": "raw"},
+    "compressor.relative_vibration_z": {"node_id": "ns=2;s={asset_id}.relative_vibration_z", "data_type": "Double", "unit": "z-score"},
+    "cnc.is_operating": {"node_id": "ns=2;s={asset_id}.is_operating", "data_type": "Boolean", "unit": "boolean"},
+    "cnc.air_temperature_k": {"node_id": "ns=2;s={asset_id}.air_temperature_k", "data_type": "Double", "unit": "K"},
+    "cnc.process_temperature_k": {"node_id": "ns=2;s={asset_id}.process_temperature_k", "data_type": "Double", "unit": "K"},
+    "cnc.rotational_speed_rpm": {"node_id": "ns=2;s={asset_id}.rotational_speed_rpm", "data_type": "Double", "unit": "rpm"},
+    "cnc.torque_nm": {"node_id": "ns=2;s={asset_id}.torque_nm", "data_type": "Double", "unit": "N.m"},
+    "cnc.tool_wear_min": {"node_id": "ns=2;s={asset_id}.tool_wear_min", "data_type": "Double", "unit": "min"}
+  }
+}

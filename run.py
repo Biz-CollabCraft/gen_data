@@ -1,9 +1,8 @@
-# ──────────────────────────────────────────────
-# gen_data CLI 진입점 모듈
-# ──────────────────────────────────────────────
+"""CLI entrypoint for the FastAPI Source Data Producer control plane."""
 
-import argparse
-from daemon import run_forever
+import uvicorn
+
+import config
 
 
 # ──────────────────────────────────────────────
@@ -11,11 +10,12 @@ from daemon import run_forever
 # ──────────────────────────────────────────────
 
 def main():
-    """gen_data 데몬 CLI 실행 인터페이스."""
-    parser = argparse.ArgumentParser(description="gen_data 공유 타임라인 병렬 센서 데이터 시뮬레이터 데몬")
-    parser.parse_args()
-
-    run_forever()
+    uvicorn.run(
+        "app.main:app",
+        host=config.GEN_DATA_API_HOST,
+        port=config.GEN_DATA_API_PORT,
+        reload=False,
+    )
 
 
 if __name__ == "__main__":

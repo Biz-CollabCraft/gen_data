@@ -25,8 +25,9 @@ ontology_dashboard/systems/backend/diagnosis
 | `scripts/ai4i_contract.py` | Canonical V3.1 물리/생성 기준 |
 | `scripts/validate_reproducibility.py` | seed 기반 source 재현성 검증 |
 | `scripts/validate_package.py`의 source gate | schema/checksum/truth isolation/topology/physics/source integrity 검증 |
-| `api/replay_server.py`의 canonical replay 기능 | 저장된 source observation을 재생하는 reference/source replay |
-| `api/dataset_server.py`의 canonical endpoint | source/reference fixture 확인용 read-only API |
+| `app/simulation/*` | 기존 physics를 사용해 SensorRecord를 한 번만 계산하는 runtime producer |
+| `app/protocol/opcua.py` | `asyncua` 기반 OPC UA DataValue publisher |
+| `app/runtime/*`, `app/api/*` | run lifecycle 및 FastAPI control surface |
 | `experiments/connected_air_supply/*` | source-side 관계 추론 실험 및 validation fixture |
 | `agent/*` | source/evidence 평가 fixture |
 
@@ -109,12 +110,9 @@ Canonical/source generation
 
 동일 Product Result Artifact 계약을 두 저장소에서 독립적으로 버전 진화시키지 않는다.
 
-## 6. 후속 #9 integration TODO
+## 6. Reference fixture 보존 기준
 
-이번 PR에서는 대규모 코드 이동을 하지 않는다. 이후 #9 재배치에서 다음 순서로 처리한다.
-
-1. `prediction_pipeline.py`의 feature/training 책임을 `systems/generator`에 맞게 재구성
-2. versioned Model Artifact manifest/publish adapter 구현
-3. runtime inference/result/evidence 책임을 `systems/backend/diagnosis`로 이동
-4. gen_data reference fixture와 새 운영 결과 간 compatibility regression 검증
-5. 제품 코드가 `gen_data/canonical/model_outputs`를 운영 결과 경로로 직접 참조하지 않는지 검사
+`model/`, `agent/`, `experiments/`, `canonical/model_outputs/`는 현재 package validation,
+release/regression tooling이 실제로 소비하므로 이 convergence에서 무조건 삭제하지 않는다.
+다만 operational runtime에서는 import하지 않으며 Source Data Producer의 실행 책임과 분리한다.
+실제 제품 기능이 이 fixture를 운영 SoT로 다시 소비하는 구조는 만들지 않는다.

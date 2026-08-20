@@ -13,22 +13,40 @@ import hashlib
 import json
 import math
 import random
+import sys
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from ai4i_contract import (
-    HDF_RPM_MAX,
-    HDF_TEMPERATURE_GAP_MAX_K,
-    OVERSTRAIN_THRESHOLDS,
-    POWER_HIGH_W,
-    POWER_LOW_W,
-    TWF_WEAR_MAX,
-    TWF_WEAR_MIN,
-    overstrain_threshold,
-    power_w,
-)
+REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+if str(REPOSITORY_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPOSITORY_ROOT))
+
+try:
+    from ai4i_contract import (
+        HDF_RPM_MAX,
+        HDF_TEMPERATURE_GAP_MAX_K,
+        OVERSTRAIN_THRESHOLDS,
+        POWER_HIGH_W,
+        POWER_LOW_W,
+        TWF_WEAR_MAX,
+        TWF_WEAR_MIN,
+        overstrain_threshold,
+        power_w,
+    )
+except ModuleNotFoundError:
+    from scripts.ai4i_contract import (
+        HDF_RPM_MAX,
+        HDF_TEMPERATURE_GAP_MAX_K,
+        OVERSTRAIN_THRESHOLDS,
+        POWER_HIGH_W,
+        POWER_LOW_W,
+        TWF_WEAR_MAX,
+        TWF_WEAR_MIN,
+        overstrain_threshold,
+        power_w,
+    )
 
 
 GENERATOR_VERSION = "canonical-ai4i-physics-v3.1"
@@ -555,6 +573,13 @@ def generate(
     seed: int,
     rate_profile: str,
 ) -> dict[str, object]:
+    # Import here rather than at module load time because physics_engine
+    # deliberately re-exports the primitives defined in this module for the
+    # live Source Data Producer. The late import keeps that compatibility
+    # boundary acyclic while making this generator consume the same producer.
+    from app.simulation.producer import SimulationProducer
+    from app.storage.canonical_writer import CanonicalWriter
+
     if days <= 0 or interval_minutes <= 0:
         raise ValueError("days and interval must be positive")
     if product_cycle_minutes % interval_minutes:
@@ -565,18 +590,20 @@ def generate(
     dataset_dir.mkdir(parents=True, exist_ok=True)
     truth_dir.mkdir(parents=True, exist_ok=True)
 
-    assets, relations = build_topology()
-    schedule = build_schedule(assets, seed, rate_profile)
     end_at = start_at + timedelta(days=days)
-    episodes = build_episodes(
-        schedule,
-        start_at,
-        end_at,
-        observation_interval_minutes=interval_minutes,
+    producer = SimulationProducer(
+        run_id=f"canonical-{seed}-{start_at.isoformat(timespec='seconds')}",
+        start_at=start_at,
+        end_at=end_at,
+        interval_minutes=interval_minutes,
+        product_cycle_minutes=product_cycle_minutes,
+        seed=seed,
+        rate_profile=rate_profile,
     )
-    episodes_by_asset: dict[str, list[Episode]] = defaultdict(list)
-    for episode in episodes:
-        episodes_by_asset[str(episode.issue["asset_id"])].append(episode)
+    assets = producer.assets
+    relations = producer.relations
+    schedule = producer.schedule
+    episodes = producer.episodes
 
     asset_path = dataset_dir / "asset_master.csv"
     relation_path = dataset_dir / "asset_relation.csv"
@@ -618,257 +645,17 @@ def generate(
     write_rows(compressor_truth_path, truth_columns, compressor_truth)
     write_rows(cnc_truth_path, truth_columns, cnc_truth)
 
-    runtimes = {
-        asset["asset_id"]: Runtime(
-            asset=asset,
-            rng=random.Random(stable_seed(seed, asset["asset_id"], "runtime")),
-            baseline=make_baseline(asset, seed),
-            tool_change_threshold_min=random.Random(
-                stable_seed(seed, asset["asset_id"], "tool-threshold")
-            ).uniform(180, 235),
-        )
-        for asset in assets
-    }
-
-    compressor_columns = [
-        "observed_at",
-        "asset_id",
-        "site_id",
-        "cell_id",
-        "is_operating",
-        "operating_state",
-        "voltage_raw",
-        "rotation_raw",
-        "pressure_raw",
-        "vibration_raw",
-        "relative_vibration_z",
-        "relative_vibration_zone",
-        "generator_version",
-    ]
-    cnc_columns = [
-        "observed_at",
-        "asset_id",
-        "site_id",
-        "cell_id",
-        "is_operating",
-        "operating_state",
-        "product_type",
-        "air_temperature_k",
-        "process_temperature_k",
-        "rotational_speed_rpm",
-        "torque_nm",
-        "tool_wear_min",
-        "generator_version",
-    ]
-    production_columns = [
-        "product_id",
-        "cnc_asset_id",
-        "cycle_started_at",
-        "cycle_completed_at",
-        "product_type",
-        "cutting_minutes",
-        "tool_wear_increment_min",
-    ]
-    maintenance_columns = [
-        "maintenance_id",
-        "asset_id",
-        "maintenance_type",
-        "started_at",
-        "completed_at",
-        "tool_replaced",
-        "source_event_id",
-    ]
-
     tick = timedelta(minutes=interval_minutes)
-    product_ticks = product_cycle_minutes // interval_minutes
-    written_failures: set[str] = set()
-
-    with (
-        compressor_sensor_path.open("w", newline="", encoding="utf-8") as compressor_handle,
-        cnc_sensor_path.open("w", newline="", encoding="utf-8") as cnc_handle,
-        production_path.open("w", newline="", encoding="utf-8") as production_handle,
-        maintenance_path.open("w", newline="", encoding="utf-8") as maintenance_handle,
-    ):
-        compressor_writer = csv.DictWriter(compressor_handle, fieldnames=compressor_columns)
-        cnc_writer = csv.DictWriter(cnc_handle, fieldnames=cnc_columns)
-        production_writer = csv.DictWriter(production_handle, fieldnames=production_columns)
-        maintenance_writer = csv.DictWriter(maintenance_handle, fieldnames=maintenance_columns)
-        compressor_writer.writeheader()
-        cnc_writer.writeheader()
-        production_writer.writeheader()
-        maintenance_writer.writeheader()
-
+    with CanonicalWriter(dataset_dir) as canonical_writer:
         observed_at = start_at
         while observed_at < end_at:
-            for asset in assets:
-                runtime = runtimes[asset["asset_id"]]
-                asset_episodes = episodes_by_asset[asset["asset_id"]]
-                if runtime.tool_reset_at and observed_at >= runtime.tool_reset_at:
-                    runtime.tool_wear_min = runtime.rng.uniform(0.0, 4.0)
-                    runtime.tool_reset_at = None
-                is_operating, state = operating_state(asset_episodes, observed_at)
-                if runtime.planned_maintenance_until and observed_at < runtime.planned_maintenance_until:
-                    is_operating, state = 0, "maintenance"
-                effects = sensor_effects(asset_episodes, observed_at)
-
-                # Failure-recovery maintenance belongs to every asset type. Keep this
-                # generic block before the compressor branch so compressor failures do
-                # not disappear from maintenance_event.csv.
-                for episode in asset_episodes:
-                    if episode.event_id in written_failures:
-                        continue
-                    if observed_at <= episode.failure_at < observed_at + tick:
-                        tool_replaced = int(
-                            asset["asset_type"] == "cnc"
-                            and episode.issue["component"] in {"TWF", "OSF"}
-                        )
-                        maintenance_writer.writerow(
-                            {
-                                "maintenance_id": f"MNT-{episode.event_id}",
-                                "asset_id": asset["asset_id"],
-                                "maintenance_type": "failure_recovery",
-                                "started_at": iso(episode.maintenance_started_at),
-                                "completed_at": iso(episode.maintenance_completed_at),
-                                "tool_replaced": tool_replaced,
-                                "source_event_id": episode.event_id,
-                            }
-                        )
-                        if tool_replaced:
-                            runtime.tool_reset_at = episode.maintenance_started_at
-                        written_failures.add(episode.event_id)
-
-                if asset["asset_type"] == "compressor":
-                    values: dict[str, float] = {}
-                    for sensor, (_mean, std) in COMPRESSOR_BASELINE.items():
-                        base = runtime.baseline[sensor]
-                        values[sensor] = base + ar_noise(runtime, sensor, std) + base * effects.get(sensor, 0.0)
-                    vibration_z = (
-                        values["vibration_raw"] - runtime.baseline["vibration_raw"]
-                    ) / COMPRESSOR_BASELINE["vibration_raw"][1]
-                    compressor_writer.writerow(
-                        {
-                            "observed_at": iso(observed_at),
-                            "asset_id": asset["asset_id"],
-                            "site_id": asset["site_id"],
-                            "cell_id": asset["cell_id"],
-                            "is_operating": is_operating,
-                            "operating_state": state,
-                            "voltage_raw": round(values["voltage_raw"], 4),
-                            "rotation_raw": round(values["rotation_raw"], 4),
-                            "pressure_raw": round(values["pressure_raw"], 4),
-                            "vibration_raw": round(values["vibration_raw"], 4),
-                            "relative_vibration_z": round(vibration_z, 4),
-                            "relative_vibration_zone": vibration_zone(vibration_z),
-                            "generator_version": GENERATOR_VERSION,
-                        }
-                    )
-                    continue
-
-                if runtime.product_started_at is None:
-                    runtime.product_started_at = observed_at
-                    runtime.product_type = choose_product(runtime)
-
-                active_episode, active_ramp = active_cnc_episode(asset_episodes, observed_at)
-                protected_failure_window = bool(
-                    active_episode
-                    and str(active_episode.issue["component"]) in {"TWF", "OSF"}
-                )
-                if active_episode and protected_failure_window:
-                    signal_strength = float(active_episode.issue["signal_strength"])
-                    physical_ramp = clamp(
-                        active_ramp * (0.55 + 0.45 * signal_strength), 0.0, 1.0
-                    )
-                    if active_ramp >= 0.999:
-                        physical_ramp = 1.0
-                    if str(active_episode.issue["component"]) == "TWF":
-                        runtime.tool_wear_min = max(
-                            runtime.tool_wear_min,
-                            180.0 + 40.0 * physical_ramp,
-                        )
-                        if active_ramp >= 0.999:
-                            runtime.tool_wear_min = max(runtime.tool_wear_min, 220.0)
-                    else:
-                        runtime.tool_wear_min = max(
-                            runtime.tool_wear_min,
-                            185.0 + 40.0 * physical_ramp,
-                        )
-                        if active_ramp >= 0.999:
-                            runtime.tool_wear_min = max(runtime.tool_wear_min, 225.0)
-
-                values = coupled_cnc_values(runtime, asset_episodes, observed_at)
-                if is_operating:
-                    runtime.product_ticks += 1
-
-                if is_operating and runtime.product_ticks >= product_ticks:
-                    cutting_min, cutting_max = PRODUCT_CUTTING_MINUTES[runtime.product_type]
-                    cutting_minutes = runtime.rng.uniform(cutting_min, cutting_max)
-                    wear_increment = cutting_minutes * TOOL_WEAR_EXPOSURE_FACTOR
-                    runtime.tool_wear_min += wear_increment
-                    if (
-                        active_episode
-                        and str(active_episode.issue["component"]) == "TWF"
-                    ):
-                        # A TWF episode must reach the 200-240 minute band
-                        # monotonically. Do not let production increments push
-                        # the wear state above the contract and then force it
-                        # backwards at the failure tick.
-                        runtime.tool_wear_min = min(runtime.tool_wear_min, 220.0)
-                    runtime.product_counter += 1
-                    production_writer.writerow(
-                        {
-                            "product_id": f"PRD-{asset['asset_id']}-{runtime.product_counter:07d}",
-                            "cnc_asset_id": asset["asset_id"],
-                            "cycle_started_at": iso(runtime.product_started_at),
-                            "cycle_completed_at": iso(observed_at + tick),
-                            "product_type": runtime.product_type,
-                            "cutting_minutes": round(cutting_minutes, 4),
-                            "tool_wear_increment_min": round(wear_increment, 4),
-                        }
-                    )
-                    runtime.product_started_at = observed_at + tick
-                    runtime.product_ticks = 0
-                    runtime.product_type = choose_product(runtime)
-                    if (
-                        runtime.tool_wear_min >= runtime.tool_change_threshold_min
-                        and not protected_failure_window
-                    ):
-                        completed_at = observed_at + tick + timedelta(minutes=30)
-                        maintenance_writer.writerow(
-                            {
-                                "maintenance_id": f"MNT-TOOL-{asset['asset_id']}-{runtime.product_counter:07d}",
-                                "asset_id": asset["asset_id"],
-                                "maintenance_type": "planned_tool_change",
-                                "started_at": iso(observed_at + tick),
-                                "completed_at": iso(completed_at),
-                                "tool_replaced": 1,
-                                "source_event_id": "",
-                            }
-                        )
-                        # Keep the current running row on the old tool. The
-                        # reset is applied at the next tick, which is exactly
-                        # maintenance_event.started_at and is emitted with
-                        # operating_state=maintenance.
-                        runtime.tool_reset_at = observed_at + tick
-                        runtime.tool_change_threshold_min = runtime.rng.uniform(180.0, 235.0)
-                        runtime.planned_maintenance_until = completed_at
-
-                cnc_writer.writerow(
-                    {
-                        "observed_at": iso(observed_at),
-                        "asset_id": asset["asset_id"],
-                        "site_id": asset["site_id"],
-                        "cell_id": asset["cell_id"],
-                        "is_operating": is_operating,
-                        "operating_state": state,
-                        "product_type": runtime.product_type,
-                        "air_temperature_k": round(values["air_temperature_k"], 4),
-                        "process_temperature_k": round(values["process_temperature_k"], 4),
-                        "rotational_speed_rpm": round(values["rotational_speed_rpm"], 4),
-                        "torque_nm": round(values["torque_nm"], 4),
-                        "tool_wear_min": round(runtime.tool_wear_min, 4),
-                        "generator_version": GENERATOR_VERSION,
-                    }
-                )
+            tick_result = producer.produce_tick(observed_at)
+            for record in tick_result.records:
+                canonical_writer.write_record(record)
+            for event in tick_result.production_events:
+                canonical_writer.write_production(event)
+            for event in tick_result.maintenance_events:
+                canonical_writer.write_maintenance(event)
             observed_at += tick
 
     canonical_files = [
