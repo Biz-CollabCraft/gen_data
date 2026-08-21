@@ -8,6 +8,7 @@ subscriptions. Neither direction claims to capture OPC UA wire packets.
 from __future__ import annotations
 
 import json
+import re
 import threading
 from collections import deque
 from dataclasses import dataclass
@@ -19,6 +20,15 @@ from asyncua import ua
 from asyncua.sync import Client, Server
 
 from app.observation.models import SensorRecord
+
+
+ASSET_ID_PATTERN = re.compile(
+    r"^(?P<prefix>CNC|CMP)-(?P<site>S\d{2})-(?P<line>L\d{2})-(?P<ordinal>\d{2})$"
+)
+ASSET_TYPE_BY_PREFIX = {
+    "CNC": "cnc",
+    "CMP": "compressor",
+}
 
 
 @dataclass(frozen=True)
@@ -76,6 +86,9 @@ class OpcUaMapping:
             if not asset_id:
                 continue
             asset_type, measurement_key = logical_key.split(".", 1)
+            asset_identity = _asset_identity_from_id(asset_id)
+            if asset_identity is None or asset_identity[0] != asset_type:
+                continue
             candidates.append(
                 ResolvedNode(
                     node_id=node_id,
@@ -87,13 +100,6 @@ class OpcUaMapping:
             )
         if len(candidates) == 1:
             return candidates[0]
-        if len(candidates) > 1:
-            prefix_hint = {"CNC-": "cnc", "CMP-": "compressor"}
-            for prefix, asset_type in prefix_hint.items():
-                if candidates[0].asset_id.startswith(prefix):
-                    matches = [item for item in candidates if item.asset_type == asset_type]
-                    if len(matches) == 1:
-                        return matches[0]
         return None
 
 
@@ -487,9 +493,25 @@ def _iso(value: datetime | None) -> str | None:
     return value.isoformat(timespec="seconds") if value is not None else None
 
 
+def _asset_identity_from_id(asset_id: str) -> tuple[str, str, str] | None:
+    """Parse the repository's explicit CNC/compressor asset naming contract.
+
+    Collector input is intentionally limited to the configured simulation
+    estate.  Rejecting malformed or unexpected IDs here prevents a future
+    naming change from silently producing incorrect site/cell metadata.
+    """
+
+    match = ASSET_ID_PATTERN.fullmatch(asset_id)
+    if match is None:
+        return None
+    asset_type = ASSET_TYPE_BY_PREFIX[match.group("prefix")]
+    site_id = match.group("site")
+    return asset_type, site_id, f"{site_id}-{match.group('line')}"
+
+
 def _location_from_asset_id(asset_id: str) -> tuple[str, str]:
-    parts = asset_id.split("-")
-    if len(parts) < 3:
+    identity = _asset_identity_from_id(asset_id)
+    if identity is None:
         return "unknown", "unknown"
-    site_id = parts[1]
-    return site_id, f"{site_id}-{parts[2]}"
+    _asset_type, site_id, cell_id = identity
+    return site_id, cell_id

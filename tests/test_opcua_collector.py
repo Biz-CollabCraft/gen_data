@@ -51,6 +51,23 @@ def wait_for(predicate, timeout: float = 6.0) -> None:
 
 
 class OpcUaCollectorTests(unittest.TestCase):
+    def test_reverse_mapping_enforces_current_asset_id_contract(self):
+        mapping = OpcUaMapping.load(MAPPING_PATH)
+
+        cnc = mapping.reverse_resolve("ns=2;s=CNC-S01-L01-01.is_operating")
+        compressor = mapping.reverse_resolve("ns=2;s=CMP-S04-L05-01.is_operating")
+
+        self.assertIsNotNone(cnc)
+        self.assertEqual(cnc.asset_type, "cnc")
+        self.assertIsNotNone(compressor)
+        self.assertEqual(compressor.asset_type, "compressor")
+        self.assertIsNone(
+            mapping.reverse_resolve("ns=2;s=CNC-S01-L01-01-extra.is_operating")
+        )
+        self.assertIsNone(
+            mapping.reverse_resolve("ns=2;s=PLC-S01-L01-01.is_operating")
+        )
+
     def test_subscription_normalizes_datavalue_and_recovers_after_server_restart(self):
         mapping = OpcUaMapping.load(MAPPING_PATH)
         port = free_port()
@@ -84,6 +101,8 @@ class OpcUaCollectorTests(unittest.TestCase):
             self.assertEqual(records[0].source_kind, "opcua")
             self.assertEqual(records[0].measurements, {"torque_nm": 51.25})
             self.assertEqual(records[0].asset_id, "CNC-S01-L01-01")
+            self.assertEqual(records[0].site_id, "S01")
+            self.assertEqual(records[0].cell_id, "S01-L01")
             self.assertEqual(provenance[0]["direction"], "received")
             self.assertEqual(provenance[0]["status_code"], "Good")
             self.assertEqual(provenance[0]["source_timestamp"], START.isoformat(timespec="seconds"))
@@ -133,20 +152,35 @@ class OpcUaCollectorTests(unittest.TestCase):
                     opcua_node_ids=[node_id, "ns=2;s=UNKNOWN.not_mapped"],
                     reconnect_seconds=0.1,
                 )
-                wait_for(lambda: manager.status("opcua-source")["source_record_count"] >= 1)
-                outputs = manager.outputs("opcua-source")
-                self.assertEqual(outputs["counts"]["source_records"], 1)
-                self.assertEqual(outputs["counts"]["protocol_datavalues"], 1)
-                self.assertEqual(outputs["counts"]["quarantined_datavalues"], 1)
-                self.assertEqual(outputs["counts"]["canonical_observations"], 0)
-                source_line = Path(outputs["source"]).read_text(encoding="utf-8")
-                self.assertIn('"source_kind": "opcua"', source_line)
-                quarantine_line = Path(outputs["protocol_quarantine"]).read_text(encoding="utf-8")
-                self.assertIn("unknown_or_ambiguous_node", quarantine_line)
-                with self.assertRaisesRegex(RuntimeError, "manual tick"):
-                    manager.tick("opcua-source")
-                stopped = manager.stop("opcua-source")
-                self.assertIn(stopped["status"], {"stopped", "partial_failure"})
+                try:
+                    wait_for(
+                        lambda: manager.outputs("opcua-source")["counts"][
+                            "source_records"
+                        ]
+                        >= 1
+                        and manager.outputs("opcua-source")["counts"][
+                            "protocol_datavalues"
+                        ]
+                        >= 1
+                        and manager.outputs("opcua-source")["counts"][
+                            "quarantined_datavalues"
+                        ]
+                        >= 1
+                    )
+                    outputs = manager.outputs("opcua-source")
+                    self.assertEqual(outputs["counts"]["source_records"], 1)
+                    self.assertEqual(outputs["counts"]["protocol_datavalues"], 1)
+                    self.assertEqual(outputs["counts"]["quarantined_datavalues"], 1)
+                    self.assertEqual(outputs["counts"]["canonical_observations"], 0)
+                    source_line = Path(outputs["source"]).read_text(encoding="utf-8")
+                    self.assertIn('"source_kind": "opcua"', source_line)
+                    quarantine_line = Path(outputs["protocol_quarantine"]).read_text(encoding="utf-8")
+                    self.assertIn("unknown_or_ambiguous_node", quarantine_line)
+                    with self.assertRaisesRegex(RuntimeError, "manual tick"):
+                        manager.tick("opcua-source")
+                finally:
+                    stopped = manager.stop("opcua-source")
+                    self.assertIn(stopped["status"], {"stopped", "partial_failure"})
         finally:
             publisher.stop()
 
@@ -245,6 +279,12 @@ class OpcUaCollectorTests(unittest.TestCase):
                         lambda: client.get("/api/runs/api-opcua-source").json()[
                             "source_record_count"
                         ]
+                        >= 1
+                    )
+                    wait_for(
+                        lambda: client.get(
+                            "/api/runs/api-opcua-source/outputs"
+                        ).json()["counts"]["protocol_datavalues"]
                         >= 1
                     )
                     outputs = client.get("/api/runs/api-opcua-source/outputs")
