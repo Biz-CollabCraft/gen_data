@@ -365,6 +365,9 @@ class OpcUaCollector:
         source_timestamp = _aware_utc(data_value.SourceTimestamp)
         server_timestamp = _aware_utc(data_value.ServerTimestamp)
         observed_at = source_timestamp or server_timestamp or received_at
+        observed_at_source = (
+            "source" if source_timestamp else "server" if server_timestamp else "received"
+        )
         status = data_value.StatusCode_
         dedup_key = (
             node_id,
@@ -390,6 +393,7 @@ class OpcUaCollector:
             site_id=site_id,
             cell_id=cell_id,
             source_kind="opcua",
+            observed_at_source=observed_at_source,
         )
         self.on_record(record)
         self.on_provenance(
@@ -409,6 +413,7 @@ class OpcUaCollector:
                 "source_timestamp": _iso(source_timestamp),
                 "server_timestamp": _iso(server_timestamp),
                 "received_at": _iso(received_at),
+                "observed_at_source": observed_at_source,
                 "mapping_version": self.mapping.mapping_version,
             }
         )

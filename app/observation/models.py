@@ -4,10 +4,12 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 from datetime import datetime
+import hashlib
+import json
 from typing import Any
 
 
-SENSOR_RECORD_SCHEMA_VERSION = "1"
+SENSOR_RECORD_SCHEMA_VERSION = "2"
 
 
 @dataclass(frozen=True)
@@ -23,6 +25,10 @@ class SensorRecord:
     site_id: str
     cell_id: str
     source_kind: str = "simulation"
+    observation_id: str = ""
+    observed_at_source: str = "source"
+    branch_kind: str = "canonical"
+    overlay: dict[str, Any] | None = None
 
     def __post_init__(self) -> None:
         if not self.run_id:
@@ -37,10 +43,30 @@ class SensorRecord:
             raise ValueError("measurements must be a non-empty mapping")
         if self.source_kind not in {"simulation", "opcua"}:
             raise ValueError(f"unsupported source_kind: {self.source_kind}")
+        if self.observed_at_source not in {"source", "server", "received"}:
+            raise ValueError("unsupported observed_at_source")
+        if self.branch_kind not in {"canonical", "overlay"}:
+            raise ValueError("unsupported branch_kind")
+        if self.branch_kind == "overlay" and self.overlay is None:
+            raise ValueError("overlay metadata is required for overlay branch")
+        if not self.observation_id:
+            object.__setattr__(self, "observation_id", self._stable_observation_id())
 
     @property
     def correlation_key(self) -> tuple[str, int, str]:
         return self.run_id, self.sequence, self.asset_id
+
+    def _stable_observation_id(self) -> str:
+        payload = {
+            "asset_id": self.asset_id,
+            "observed_at": self.observed_at.isoformat(timespec="seconds"),
+            "measurements": self.measurements,
+            "source_kind": self.source_kind,
+        }
+        digest = hashlib.sha256(
+            json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
+        return f"obs-{digest[:32]}"
 
     def to_dict(self) -> dict[str, Any]:
         payload = asdict(self)

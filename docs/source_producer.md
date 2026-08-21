@@ -33,6 +33,26 @@ writer나 protocol publisher는 physics 함수를 호출하지 않는다. protoc
 `measurements`, `generator_version`이다. 현재 canonical projection에 필요한
 `asset_type`, `site_id`, `cell_id`도 함께 보존한다.
 
+`observation_id`는 run 독립적인 결정론적 식별자다. 생성 시 `run_id`나
+sequence를 포함하지 않으며 `asset_id`, `observed_at`, measurement fingerprint,
+source kind를 기반으로 생성된다. Backend idempotency key로 사용할 수 있다.
+
+`branch_kind`는 현재 모든 producer/collector 출력에서 `canonical`이다.
+향후 overlay branch는 같은 observation contract를 유지하며 다음 형태의
+optional `overlay` 객체를 사용한다.
+
+```json
+{
+  "branch_kind": "overlay",
+  "overlay": {
+    "overlay_id": "...",
+    "parent_branch": "canonical",
+    "maintenance_event_id": "...",
+    "state_patch_reference": "..."
+  }
+}
+```
+
 `sequence`는 run 안에서 yield된 record마다 증가한다. source correlation은
 `run_id + sequence + asset_id`, protocol measurement correlation은 여기에
 `measurement_key`를 더한다.
@@ -57,7 +77,12 @@ DataValue 한 건을 measurement 하나를 가진 `SensorRecord(source_kind=opcu
 수신 provenance는 publish provenance와 구별하기 위해 `direction=received`를 기록하며
 `StatusCode`, `SourceTimestamp`, `ServerTimestamp`, `received_at`을 모두 보존한다.
 `observed_at`은 SourceTimestamp → ServerTimestamp → received_at 순으로 선택한다.
+SensorRecord에도 `observed_at_source` (`source` | `server` | `received`)를 함께 기록한다.
 OPC UA quality는 source quality일 뿐 Diagnosis 상태로 해석하지 않는다.
+
+현재 measurement 값은 기존 `measurements: dict[str, value]` 계약을 유지한다.
+OPC UA 상태 코드와 quality metadata는 provenance boundary에 기록하며,
+simulation과 OPC UA 모두 동일한 SensorRecord contract로 수렴한다.
 
 최소 수집 안전장치는 다음과 같다.
 
