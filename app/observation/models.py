@@ -29,6 +29,8 @@ class SensorRecord:
     observed_at_source: str = "source"
     branch_kind: str = "canonical"
     overlay: dict[str, Any] | None = None
+    record_kind: str = "full_observation"
+    quality: str = "good"
 
     def __post_init__(self) -> None:
         if self.schema_version != SENSOR_RECORD_SCHEMA_VERSION:
@@ -53,6 +55,14 @@ class SensorRecord:
             raise ValueError("unsupported branch_kind")
         if self.branch_kind == "overlay" and self.overlay is None:
             raise ValueError("overlay metadata is required for overlay branch")
+        if self.record_kind not in {"full_observation", "single_measurement"}:
+            raise ValueError("unsupported record_kind")
+        if self.record_kind == "single_measurement" and len(self.measurements) != 1:
+            raise ValueError("single_measurement records require exactly one measurement")
+        if self.source_kind == "opcua" and self.record_kind != "single_measurement":
+            raise ValueError("OPC UA source records must use single_measurement")
+        if self.quality not in {"good", "uncertain", "bad"}:
+            raise ValueError("unsupported quality")
         if not self.observation_id:
             object.__setattr__(self, "observation_id", self._stable_observation_id())
 
@@ -66,6 +76,8 @@ class SensorRecord:
             "observed_at": self.observed_at.isoformat(timespec="seconds"),
             "measurements": self.measurements,
             "source_kind": self.source_kind,
+            "record_kind": self.record_kind,
+            "quality": self.quality,
         }
         digest = hashlib.sha256(
             json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")

@@ -45,6 +45,8 @@ class RuntimeManagerTest(unittest.TestCase):
             with canonical_path.open(encoding="utf-8", newline="") as handle:
                 canonical_first = next(csv.DictReader(handle))
             self.assertEqual(source_first["asset_id"], canonical_first["asset_id"])
+            self.assertEqual(source_first["record_kind"], "full_observation")
+            self.assertEqual(source_first["quality"], "good")
             self.assertEqual(source_first["observed_at"], canonical_first["observed_at"])
             self.assertEqual(
                 str(source_first["measurements"]["voltage_raw"]),

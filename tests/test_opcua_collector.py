@@ -5,6 +5,8 @@ import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from types import SimpleNamespace
+from unittest.mock import patch
 
 from asyncua import ua
 from asyncua.sync import Server
@@ -99,12 +101,16 @@ class OpcUaCollectorTests(unittest.TestCase):
         try:
             wait_for(lambda: len(records) >= 1)
             self.assertEqual(records[0].source_kind, "opcua")
+            self.assertEqual(records[0].record_kind, "single_measurement")
+            self.assertEqual(records[0].quality, "good")
             self.assertEqual(records[0].measurements, {"torque_nm": 51.25})
             self.assertEqual(records[0].asset_id, "CNC-S01-L01-01")
             self.assertEqual(records[0].site_id, "S01")
             self.assertEqual(records[0].cell_id, "S01-L01")
             self.assertEqual(provenance[0]["direction"], "received")
             self.assertEqual(provenance[0]["status_code"], "Good")
+            self.assertEqual(provenance[0]["record_kind"], "single_measurement")
+            self.assertEqual(provenance[0]["quality"], "good")
             self.assertEqual(provenance[0]["schema_version"], "2")
             self.assertEqual(provenance[0]["observation_id"], records[0].observation_id)
             self.assertEqual(provenance[0]["source_timestamp"], START.isoformat(timespec="seconds"))
@@ -185,6 +191,97 @@ class OpcUaCollectorTests(unittest.TestCase):
                     self.assertIn(stopped["status"], {"stopped", "partial_failure"})
         finally:
             publisher.stop()
+
+    def test_status_code_severity_is_carried_by_sensor_record(self):
+        mapping = OpcUaMapping.load(MAPPING_PATH)
+        node_id = "ns=2;s=CNC-S01-L01-01.torque_nm"
+        resolved = mapping.reverse_resolve(node_id)
+        self.assertIsNotNone(resolved)
+        records = []
+        provenance = []
+        collector = OpcUaCollector(
+            endpoint="opc.tcp://127.0.0.1:1/gen-data/",
+            mapping=mapping,
+            run_id="quality-contract",
+            node_ids=[node_id],
+            on_record=records.append,
+            on_provenance=provenance.append,
+            on_quarantine=lambda _payload: None,
+            on_error=lambda _payload: None,
+        )
+        collector._resolved_nodes[node_id] = resolved
+        node = SimpleNamespace(nodeid=ua.NodeId.from_string(node_id))
+
+        for offset, (status_value, expected_quality) in enumerate(
+            ((0x40000000, "uncertain"), (0x80000000, "bad"))
+        ):
+            data_value = ua.DataValue(
+                ua.Variant(42.0 + offset, ua.VariantType.Double),
+                StatusCode_=ua.StatusCode(status_value),
+                SourceTimestamp=START + timedelta(seconds=offset),
+            )
+            data = SimpleNamespace(monitored_item=SimpleNamespace(Value=data_value))
+            collector.datachange_notification(node, 42.0 + offset, data)
+
+            self.assertEqual(records[-1].quality, expected_quality)
+            self.assertEqual(records[-1].record_kind, "single_measurement")
+            self.assertEqual(provenance[-1]["quality"], expected_quality)
+
+    def test_invalid_opcua_start_rolls_back_resources_and_allows_retry(self):
+        node_id = "ns=2;s=CNC-S01-L01-01.torque_nm"
+        with TemporaryDirectory() as directory:
+            output_root = Path(directory)
+            manager = RuntimeManager(
+                output_root=output_root,
+                mapping_path=MAPPING_PATH,
+                opcua_endpoint="opc.tcp://127.0.0.1:1/gen-data/",
+            )
+            with self.assertRaisesRegex(ValueError, "at least one OPC UA node_id"):
+                manager.start_run(
+                    run_id="retryable",
+                    source_kind="opcua",
+                    opcua_node_ids=[],
+                )
+            self.assertFalse((output_root / "runs" / "retryable").exists())
+
+            with patch(
+                "app.runtime.manager.OpcUaCollector",
+                side_effect=RuntimeError("collector initialization failed"),
+            ):
+                with self.assertRaisesRegex(RuntimeError, "initialization failed"):
+                    manager.start_run(
+                        run_id="retryable",
+                        source_kind="opcua",
+                        opcua_node_ids=[node_id],
+                    )
+            self.assertFalse((output_root / "runs" / "retryable").exists())
+
+            entered = threading.Event()
+            released = threading.Event()
+
+            def wait_until_released(_collector, _stop_event):
+                entered.set()
+                released.wait(2)
+
+            manager.worker_join_timeout_seconds = 0.01
+            with patch.object(OpcUaCollector, "run", wait_until_released):
+                manager.start_run(
+                    run_id="retryable",
+                    source_kind="opcua",
+                    opcua_node_ids=[node_id],
+                )
+                self.assertTrue(entered.wait(1))
+                context = manager._get("retryable")
+                stopping = manager.stop("retryable")
+                self.assertEqual(stopping["status"], "stopping")
+                self.assertFalse(context.source_writer._handle.closed)
+                self.assertFalse(context.protocol_writer._provenance.closed)
+                released.set()
+                context.thread.join(timeout=1)
+                self.assertFalse(context.thread.is_alive())
+                self.assertTrue(context.source_writer._handle.closed)
+                self.assertTrue(context.protocol_writer._provenance.closed)
+                self.assertEqual(context.state.status, "partial_failure")
 
     def test_invalid_data_type_and_unit_are_quarantined(self):
         mapping = OpcUaMapping.load(MAPPING_PATH)

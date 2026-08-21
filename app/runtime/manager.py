@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 import threading
 import time
 import uuid
@@ -286,37 +287,51 @@ class _OpcUaRunContext:
         self.run_id = run_id
         self.output_root = output_root
         self.run_dir = output_root / "runs" / run_id
-        self.run_dir.mkdir(parents=True, exist_ok=False)
-        self.manifest_path = self.run_dir / "run_manifest.json"
-        self.endpoint = endpoint
-        self.node_ids = list(dict.fromkeys(node_ids))
         self.mapping = OpcUaMapping.load(mapping_path)
-        self.source_writer = SourceRecordWriter(self.run_dir / "source" / "sensor_records.jsonl")
-        self.protocol_writer = ProtocolRecordWriter(self.run_dir / "protocol")
-        self.stop_event = threading.Event()
-        self.lock = threading.RLock()
-        self.thread: threading.Thread | None = None
-        now = datetime.now(tz=timezone.utc)
-        self.state = RunState(
-            run_id=run_id,
-            status="running",
-            started_at=now,
-            current_observed_at=now,
-            source_kind="opcua",
-        )
-        self._closed = False
-        self.collector = OpcUaCollector(
-            endpoint=endpoint,
-            mapping=self.mapping,
-            run_id=run_id,
-            node_ids=self.node_ids,
-            on_record=self._on_record,
-            on_provenance=self._on_provenance,
-            on_quarantine=self._on_quarantine,
-            on_error=self._on_error,
-            reconnect_seconds=reconnect_seconds,
-        )
-        self._write_manifest()
+        self.run_dir.mkdir(parents=True, exist_ok=False)
+        source_writer: SourceRecordWriter | None = None
+        protocol_writer: ProtocolRecordWriter | None = None
+        try:
+            self.manifest_path = self.run_dir / "run_manifest.json"
+            self.endpoint = endpoint
+            self.node_ids = list(dict.fromkeys(node_ids))
+            source_writer = SourceRecordWriter(
+                self.run_dir / "source" / "sensor_records.jsonl"
+            )
+            protocol_writer = ProtocolRecordWriter(self.run_dir / "protocol")
+            self.source_writer = source_writer
+            self.protocol_writer = protocol_writer
+            self.stop_event = threading.Event()
+            self.lock = threading.RLock()
+            self.thread: threading.Thread | None = None
+            now = datetime.now(tz=timezone.utc)
+            self.state = RunState(
+                run_id=run_id,
+                status="running",
+                started_at=now,
+                current_observed_at=now,
+                source_kind="opcua",
+            )
+            self._closed = False
+            self.collector = OpcUaCollector(
+                endpoint=endpoint,
+                mapping=self.mapping,
+                run_id=run_id,
+                node_ids=self.node_ids,
+                on_record=self._on_record,
+                on_provenance=self._on_provenance,
+                on_quarantine=self._on_quarantine,
+                on_error=self._on_error,
+                reconnect_seconds=reconnect_seconds,
+            )
+            self._write_manifest()
+        except Exception:
+            if protocol_writer is not None:
+                protocol_writer.close()
+            if source_writer is not None:
+                source_writer.close()
+            shutil.rmtree(self.run_dir, ignore_errors=True)
+            raise
 
     def process_tick(self) -> RunState:
         raise RuntimeError("manual tick is only supported for simulation source runs")
@@ -461,10 +476,12 @@ class RuntimeManager:
         output_root: Path,
         mapping_path: Path,
         opcua_endpoint: str,
+        worker_join_timeout_seconds: float = 5.0,
     ) -> None:
         self.output_root = output_root
         self.mapping_path = mapping_path
         self.opcua_endpoint = opcua_endpoint
+        self.worker_join_timeout_seconds = max(0.0, worker_join_timeout_seconds)
         self._runs: dict[str, _RunContext | _OpcUaRunContext] = {}
         self._lock = threading.RLock()
 
@@ -505,6 +522,8 @@ class RuntimeManager:
             if source_kind == "opcua":
                 if not continuous:
                     raise ValueError("OPC UA source runs require continuous=true")
+                if not opcua_node_ids:
+                    raise ValueError("at least one OPC UA node_id is required")
                 if reconnect_seconds <= 0:
                     raise ValueError("reconnect_seconds must be positive")
                 context = _OpcUaRunContext(
@@ -550,7 +569,25 @@ class RuntimeManager:
         context.stop_event.set()
         thread = context.thread
         if thread and thread.is_alive() and thread is not threading.current_thread():
-            thread.join(timeout=5)
+            thread.join(timeout=self.worker_join_timeout_seconds)
+            if thread.is_alive():
+                with context.lock:
+                    context.state.status = "stopping"
+                    context.state.failures.append(
+                        {
+                            "stage": "worker_stop_timeout",
+                            "error": (
+                                "worker did not stop within "
+                                f"{self.worker_join_timeout_seconds:g} seconds; "
+                                "writers remain open until worker termination"
+                            ),
+                            "recorded_at": datetime.now(tz=timezone.utc).isoformat(
+                                timespec="seconds"
+                            ),
+                        }
+                    )
+                    context._write_manifest()
+                    return context.state.to_dict()
         if not context._closed:
             context.finish("stopped")
         return context.state.to_dict()

@@ -8,6 +8,7 @@ subscriptions. Neither direction claims to capture OPC UA wire packets.
 from __future__ import annotations
 
 import json
+import logging
 import re
 import threading
 from collections import deque
@@ -29,6 +30,7 @@ ASSET_TYPE_BY_PREFIX = {
     "CNC": "cnc",
     "CMP": "compressor",
 }
+LOGGER = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -191,6 +193,8 @@ class OpcUaPublisher:
                     "schema_version": record.schema_version,
                     "observation_id": record.observation_id,
                     "source_kind": record.source_kind,
+                    "record_kind": record.record_kind,
+                    "quality": record.quality,
                     "run_id": record.run_id,
                     "sequence": record.sequence,
                     "asset_id": record.asset_id,
@@ -276,6 +280,7 @@ class OpcUaCollector:
         publishing_interval_ms: float = 250.0,
         reconnect_seconds: float = 1.0,
         dedup_capacity: int = 10_000,
+        monitored_item_queue_size: int = 1_000,
     ) -> None:
         if not node_ids:
             raise ValueError("at least one OPC UA node_id is required")
@@ -290,10 +295,12 @@ class OpcUaCollector:
         self.publishing_interval_ms = publishing_interval_ms
         self.reconnect_seconds = reconnect_seconds
         self.dedup_capacity = max(1, dedup_capacity)
+        self.monitored_item_queue_size = max(1, monitored_item_queue_size)
         self._sequence = 0
         self._sequence_lock = threading.Lock()
         self._dedup_order: deque[tuple[Any, ...]] = deque()
         self._dedup_keys: set[tuple[Any, ...]] = set()
+        self._resolved_nodes: dict[str, ResolvedNode] = {}
 
     @property
     def sequence(self) -> int:
@@ -308,6 +315,7 @@ class OpcUaCollector:
                 client.connect()
                 subscription = client.create_subscription(self.publishing_interval_ms, self)
                 nodes = []
+                resolved_nodes: dict[str, ResolvedNode] = {}
                 for node_id in self.node_ids:
                     resolved = self.mapping.reverse_resolve(node_id)
                     if resolved is None:
@@ -316,9 +324,14 @@ class OpcUaCollector:
                     node = client.get_node(node_id)
                     if self._validate_configured_node(node, resolved):
                         nodes.append(node)
+                        resolved_nodes[node.nodeid.to_string()] = resolved
                 if not nodes:
                     raise RuntimeError("no valid OPC UA nodes remain after mapping validation")
-                handles = subscription.subscribe_data_change(nodes, queuesize=1)
+                self._resolved_nodes = resolved_nodes
+                handles = subscription.subscribe_data_change(
+                    nodes,
+                    queuesize=self.monitored_item_queue_size,
+                )
                 if isinstance(handles, list):
                     for node, handle in zip(nodes, handles):
                         if isinstance(handle, ua.StatusCode) and not handle.is_good():
@@ -340,17 +353,18 @@ class OpcUaCollector:
                 if subscription is not None:
                     try:
                         subscription.delete()
-                    except Exception:
-                        pass
+                    except Exception as exc:
+                        LOGGER.debug("OPC UA subscription cleanup failed", exc_info=exc)
                 if client is not None:
                     try:
                         client.disconnect()
-                    except Exception:
-                        pass
+                    except Exception as exc:
+                        LOGGER.debug("OPC UA client cleanup failed", exc_info=exc)
+                self._resolved_nodes = {}
 
     def datachange_notification(self, node, value: Any, data) -> None:
         node_id = node.nodeid.to_string()
-        resolved = self.mapping.reverse_resolve(node_id)
+        resolved = self._resolved_nodes.get(node_id)
         if resolved is None:
             self._quarantine(node_id, "unknown_or_ambiguous_node", value=value)
             return
@@ -374,6 +388,7 @@ class OpcUaCollector:
             "source" if source_timestamp else "server" if server_timestamp else "received"
         )
         status = data_value.StatusCode_
+        quality = _quality_from_status(status)
         dedup_key = (
             node_id,
             _iso(source_timestamp or server_timestamp),
@@ -399,6 +414,8 @@ class OpcUaCollector:
             cell_id=cell_id,
             source_kind="opcua",
             observed_at_source=observed_at_source,
+            record_kind="single_measurement",
+            quality=quality,
         )
         self.on_record(record)
         self.on_provenance(
@@ -407,6 +424,8 @@ class OpcUaCollector:
                 "schema_version": record.schema_version,
                 "observation_id": record.observation_id,
                 "source_kind": "opcua",
+                "record_kind": record.record_kind,
+                "quality": record.quality,
                 "run_id": self.run_id,
                 "sequence": sequence,
                 "asset_id": resolved.asset_id,
@@ -505,6 +524,14 @@ def _aware_utc(value: datetime | None) -> datetime | None:
 
 def _iso(value: datetime | None) -> str | None:
     return value.isoformat(timespec="seconds") if value is not None else None
+
+
+def _quality_from_status(status: ua.StatusCode) -> str:
+    if status.is_good():
+        return "good"
+    if status.is_bad():
+        return "bad"
+    return "uncertain"
 
 
 def _asset_identity_from_id(asset_id: str) -> tuple[str, str, str] | None:

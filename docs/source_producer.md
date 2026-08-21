@@ -32,7 +32,7 @@ writer나 protocol publisher는 physics 함수를 호출하지 않는다. protoc
 현재 계약은 schema v2다. 필수 필드는 `schema_version`, `run_id`, `sequence`,
 `asset_id`, `observed_at`, `measurements`, `generator_version`, `asset_type`,
 `site_id`, `cell_id`, `source_kind`, `observation_id`, `observed_at_source`,
-`branch_kind`이며 `overlay`는 nullable이다. v1 소비자는 새 필드의 의미를
+`branch_kind`, `record_kind`, `quality`이며 `overlay`는 nullable이다. v1 소비자는 새 필드의 의미를
 추론해서는 안 되며, v2를 명시적으로 지원한 뒤 전환해야 한다. v2 writer는 모든
 레코드에 새 필드를 직렬화하고 v1 레코드를 생성하지 않는다.
 
@@ -63,6 +63,12 @@ optional `overlay` 객체를 사용한다.
 `run_id + sequence + asset_id`, protocol measurement correlation은 여기에
 `measurement_key`를 더한다.
 
+`record_kind`는 simulation의 asset 단위 feature 묶음을 `full_observation`, OPC UA
+DataValue 한 건을 `single_measurement`로 구분한다. 두 경로의 measurement cardinality가
+같다고 가정하지 않으며 Generator는 single-measurement protocol record를 명시적으로
+조립한다. `quality`는 `good | uncertain | bad` source-quality 분류다. simulation은
+생성 계약상 `good`, OPC UA는 수신 StatusCode severity에서 결정한다.
+
 ## OPC UA publisher
 
 `app/protocol/opcua.py`는 `asyncua` SDK의 Server/Node/DataValue를 사용한다.
@@ -84,14 +90,16 @@ DataValue 한 건을 measurement 하나를 가진 `SensorRecord(source_kind=opcu
 `StatusCode`, `SourceTimestamp`, `ServerTimestamp`, `received_at`을 모두 보존한다.
 `observed_at`은 SourceTimestamp → ServerTimestamp → received_at 순으로 선택한다.
 SensorRecord에도 `observed_at_source` (`source` | `server` | `received`)를 함께 기록한다.
-OPC UA quality는 source quality일 뿐 Diagnosis 상태로 해석하지 않는다.
+OPC UA quality는 source quality일 뿐 Diagnosis 상태로 해석하지 않는다. 원본
+`StatusCode`와 정수 값은 provenance에 보존하고, `SensorRecord.quality`에는
+Good/Uncertain/Bad severity만 전달해 소비자가 별도 파일 join 없이 fail-closed 정책을
+적용할 수 있게 한다.
 
 현재 measurement 값은 기존 `measurements: dict[str, value]` 계약을 유지한다.
-OPC UA 상태 코드와 quality metadata는 protocol record에 기록한다. simulation에는
-OPC UA 통신 quality를 인위적으로 만들지 않는다. 소비자는 `source_kind=opcua`일 때
-`status_code`를 Good/Uncertain/Bad 정책에 사용하고, simulation 유효성은 별도
-생성 계약으로 판단한다. 두 경로는 동일한 SensorRecord v2 shape를 사용하지만
-source-specific quality 의미까지 같다고 가정하지 않는다.
+simulation은 `record_kind=full_observation`, OPC UA는
+`record_kind=single_measurement`로 cardinality를 명시한다. simulation의 `quality=good`은
+OPC UA 통신 상태를 흉내 낸 값이 아니라 generator가 만든 observation이 유효하다는
+source-quality 기본값이다.
 
 ## Generator ingestion contract
 
@@ -133,6 +141,10 @@ NodeSet 자동 discovery, multi-server federation, late-arrival aggregation은 �
 simulation run의 manual tick과 continuous loop는 같은 `process_tick`을 사용한다.
 `source_kind=opcua` run은 subscription worker를 소유하며 manual tick은 지원하지 않는다.
 stop 시 writer flush와 OPC UA client/subscription cleanup을 수행한다.
+시작 입력과 mapping은 run 디렉터리 생성 전에 검증하며, context 초기화 실패 시 열린
+writer와 새 run 디렉터리를 rollback한다. stop timeout 뒤 worker가 남아 있으면 상태를
+`stopping`으로 유지하고 writer를 닫지 않는다. collector/session과 worker가 실제로
+종료된 뒤에만 writer를 flush/close하고 terminal 상태를 확정한다.
 
 FastAPI는 control layer만 담당한다.
 
