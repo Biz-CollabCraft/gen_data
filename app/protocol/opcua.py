@@ -19,7 +19,7 @@ from typing import Any, Callable
 from asyncua import ua
 from asyncua.sync import Client, Server
 
-from app.observation.models import SensorRecord
+from app.observation.models import SENSOR_RECORD_SCHEMA_VERSION, SensorRecord
 
 
 ASSET_ID_PATTERN = re.compile(
@@ -188,6 +188,8 @@ class OpcUaPublisher:
             published.append(
                 {
                     "direction": "published",
+                    "schema_version": record.schema_version,
+                    "observation_id": record.observation_id,
                     "source_kind": record.source_kind,
                     "run_id": record.run_id,
                     "sequence": record.sequence,
@@ -199,6 +201,9 @@ class OpcUaPublisher:
                     "value": protocol_value,
                     "status_code": "Good",
                     "source_timestamp": record.observed_at.isoformat(timespec="seconds"),
+                    "observed_at_source": record.observed_at_source,
+                    "branch_kind": record.branch_kind,
+                    "overlay": record.overlay,
                     "published_at": published_at.isoformat(timespec="seconds"),
                     "mapping_version": self.mapping.mapping_version,
                 }
@@ -382,7 +387,7 @@ class OpcUaCollector:
             sequence = self._sequence
         site_id, cell_id = _location_from_asset_id(resolved.asset_id)
         record = SensorRecord(
-            schema_version="1",
+            schema_version=SENSOR_RECORD_SCHEMA_VERSION,
             run_id=self.run_id,
             sequence=sequence,
             asset_id=resolved.asset_id,
@@ -399,6 +404,8 @@ class OpcUaCollector:
         self.on_provenance(
             {
                 "direction": "received",
+                "schema_version": record.schema_version,
+                "observation_id": record.observation_id,
                 "source_kind": "opcua",
                 "run_id": self.run_id,
                 "sequence": sequence,
@@ -414,6 +421,8 @@ class OpcUaCollector:
                 "server_timestamp": _iso(server_timestamp),
                 "received_at": _iso(received_at),
                 "observed_at_source": observed_at_source,
+                "branch_kind": record.branch_kind,
+                "overlay": record.overlay,
                 "mapping_version": self.mapping.mapping_version,
             }
         )

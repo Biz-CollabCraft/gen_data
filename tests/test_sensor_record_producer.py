@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 import unittest
 
-from app.observation.models import SensorRecord
+from app.observation.models import SENSOR_RECORD_SCHEMA_VERSION, SensorRecord
 from app.simulation.producer import SimulationProducer
 
 
@@ -28,7 +28,11 @@ class SensorRecordProducerTest(unittest.TestCase):
         self.assertEqual([record.sequence for record in tick.records], list(range(1, 101)))
         self.assertEqual(len({record.correlation_key for record in tick.records}), 100)
         first = tick.records[0]
-        self.assertEqual(first.schema_version, "1")
+        self.assertEqual(first.schema_version, SENSOR_RECORD_SCHEMA_VERSION)
+        self.assertEqual(first.observed_at_source, "source")
+        self.assertEqual(first.branch_kind, "canonical")
+        self.assertIsNone(first.overlay)
+        self.assertTrue(first.observation_id.startswith("obs-"))
         self.assertEqual(first.generator_version, "canonical-ai4i-physics-v3.1")
         self.assertEqual(first.measurements["voltage_raw"], 174.3943)
 
@@ -49,3 +53,7 @@ class SensorRecordProducerTest(unittest.TestCase):
             )
             self.assertEqual({record.run_id for record in left_records}, {"run-a"})
             self.assertEqual({record.run_id for record in right_records}, {"run-b"})
+            self.assertEqual(
+                [record.observation_id for record in left_records],
+                [record.observation_id for record in right_records],
+            )

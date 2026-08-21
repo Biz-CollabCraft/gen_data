@@ -29,13 +29,19 @@ writer나 protocol publisher는 physics 함수를 호출하지 않는다. protoc
 
 ## SensorRecord
 
-필수 필드는 `schema_version`, `run_id`, `sequence`, `asset_id`, `observed_at`,
-`measurements`, `generator_version`이다. 현재 canonical projection에 필요한
-`asset_type`, `site_id`, `cell_id`도 함께 보존한다.
+현재 계약은 schema v2다. 필수 필드는 `schema_version`, `run_id`, `sequence`,
+`asset_id`, `observed_at`, `measurements`, `generator_version`, `asset_type`,
+`site_id`, `cell_id`, `source_kind`, `observation_id`, `observed_at_source`,
+`branch_kind`이며 `overlay`는 nullable이다. v1 소비자는 새 필드의 의미를
+추론해서는 안 되며, v2를 명시적으로 지원한 뒤 전환해야 한다. v2 writer는 모든
+레코드에 새 필드를 직렬화하고 v1 레코드를 생성하지 않는다.
 
 `observation_id`는 run 독립적인 결정론적 식별자다. 생성 시 `run_id`나
 sequence를 포함하지 않으며 `asset_id`, `observed_at`, measurement fingerprint,
-source kind를 기반으로 생성된다. Backend idempotency key로 사용할 수 있다.
+source kind를 기반으로 생성된다. 이 ID는 gen_data source record와 protocol record를
+연결하고 재현·누락·중복을 확인하는 correlation ID다. Backend와 Ontology는 이를
+source reference로 보존할 수 있지만, 각 도메인의 최종 Observation/Object ID와
+동일한 값으로 간주하거나 그 ID 생성 규칙을 gen_data에 위임하지 않는다.
 
 `branch_kind`는 현재 모든 producer/collector 출력에서 `canonical`이다.
 향후 overlay branch는 같은 observation contract를 유지하며 다음 형태의
@@ -81,8 +87,34 @@ SensorRecord에도 `observed_at_source` (`source` | `server` | `received`)를 �
 OPC UA quality는 source quality일 뿐 Diagnosis 상태로 해석하지 않는다.
 
 현재 measurement 값은 기존 `measurements: dict[str, value]` 계약을 유지한다.
-OPC UA 상태 코드와 quality metadata는 provenance boundary에 기록하며,
-simulation과 OPC UA 모두 동일한 SensorRecord contract로 수렴한다.
+OPC UA 상태 코드와 quality metadata는 protocol record에 기록한다. simulation에는
+OPC UA 통신 quality를 인위적으로 만들지 않는다. 소비자는 `source_kind=opcua`일 때
+`status_code`를 Good/Uncertain/Bad 정책에 사용하고, simulation 유효성은 별도
+생성 계약으로 판단한다. 두 경로는 동일한 SensorRecord v2 shape를 사용하지만
+source-specific quality 의미까지 같다고 가정하지 않는다.
+
+## Generator ingestion contract
+
+`protocol/provenance.jsonl`은 단순 감사 로그가 아니라 정상 OPC UA DataValue 단위의
+append-only protocol record이며 Generator ingestion의 공식 입력 계약이다. Generator는
+이 파일에서 schema/mapping을 검증하고 measurement를 asset-time 단위로 조립한 뒤
+quality policy, history window, feature 생성과 inference를 수행한다. `errors.jsonl`과
+`quarantine.jsonl`은 정상 feature/prediction 입력에서 제외한다.
+
+```text
+source/sensor_records.jsonl = 생성 원본 확인, 재현, protocol correlation
+protocol/provenance.jsonl  = Generator 운영 입력
+canonical/*.csv + manifest = 기존 데이터 계약의 회귀·호환 검증
+```
+
+Generator prediction은 `observation_id`, `run_id`, `sequence`, `mapping_version`,
+`schema_version`을 source lineage로 전달한다. Canonical CSV는 운영 inference 입력이
+아니며, Backend/Ontology 도메인 ID는 각 owner domain에서 별도로 만든다.
+
+향후 overlay 실행은 Maintenance가 `overlay_id`, `parent_branch`,
+`maintenance_event_id`, `state_patch_reference`를 입력으로 제공하고 gen_data는 그 값을
+판단하거나 생성하지 않은 채 source/protocol lineage에 보존한다. 현재 PR은
+`branch_kind=canonical`, `overlay=null` 기본값과 v2 필드 자리만 제공한다.
 
 최소 수집 안전장치는 다음과 같다.
 

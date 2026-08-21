@@ -11,7 +11,7 @@ from asyncua.sync import Server
 from fastapi.testclient import TestClient
 
 from app.main import create_app
-from app.observation.models import SensorRecord
+from app.observation.models import SENSOR_RECORD_SCHEMA_VERSION, SensorRecord
 from app.protocol.opcua import OpcUaCollector, OpcUaMapping, OpcUaPublisher
 from app.runtime.manager import RuntimeManager
 
@@ -28,7 +28,7 @@ def free_port() -> int:
 
 def cnc_record(value: float, sequence: int, observed_at: datetime) -> SensorRecord:
     return SensorRecord(
-        schema_version="1",
+        schema_version=SENSOR_RECORD_SCHEMA_VERSION,
         run_id="publisher",
         sequence=sequence,
         asset_id="CNC-S01-L01-01",
@@ -105,6 +105,8 @@ class OpcUaCollectorTests(unittest.TestCase):
             self.assertEqual(records[0].cell_id, "S01-L01")
             self.assertEqual(provenance[0]["direction"], "received")
             self.assertEqual(provenance[0]["status_code"], "Good")
+            self.assertEqual(provenance[0]["schema_version"], "2")
+            self.assertEqual(provenance[0]["observation_id"], records[0].observation_id)
             self.assertEqual(provenance[0]["source_timestamp"], START.isoformat(timespec="seconds"))
             self.assertIsNotNone(provenance[0]["server_timestamp"])
             self.assertIsNotNone(provenance[0]["received_at"])

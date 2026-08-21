@@ -31,6 +31,10 @@ class SensorRecord:
     overlay: dict[str, Any] | None = None
 
     def __post_init__(self) -> None:
+        if self.schema_version != SENSOR_RECORD_SCHEMA_VERSION:
+            raise ValueError(
+                f"unsupported SensorRecord schema_version: {self.schema_version}"
+            )
         if not self.run_id:
             raise ValueError("run_id is required")
         if self.sequence < 1:

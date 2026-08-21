@@ -4,13 +4,13 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from app.observation.models import SensorRecord
+from app.observation.models import SENSOR_RECORD_SCHEMA_VERSION, SensorRecord
 from app.storage.source_writer import SourceRecordWriter
 
 
 def record(run_id: str, sequence: int) -> SensorRecord:
     return SensorRecord(
-        schema_version="1",
+        schema_version=SENSOR_RECORD_SCHEMA_VERSION,
         run_id=run_id,
         sequence=sequence,
         asset_id="CNC-S01-L01-01",
@@ -39,3 +39,6 @@ class SourceStorageTest(unittest.TestCase):
             self.assertEqual([row["sequence"] for row in left_rows], [1, 2])
             self.assertEqual({row["run_id"] for row in left_rows}, {"run-a"})
             self.assertEqual({row["run_id"] for row in right_rows}, {"run-b"})
+            self.assertEqual({row["schema_version"] for row in left_rows}, {"2"})
+            self.assertTrue(all(row["observation_id"].startswith("obs-") for row in left_rows))
+            self.assertEqual({row["branch_kind"] for row in left_rows}, {"canonical"})

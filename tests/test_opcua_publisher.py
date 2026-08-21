@@ -6,7 +6,7 @@ import unittest
 from asyncua import ua
 from asyncua.sync import Client
 
-from app.observation.models import SensorRecord
+from app.observation.models import SENSOR_RECORD_SCHEMA_VERSION, SensorRecord
 from app.protocol.opcua import OpcUaMapping, OpcUaPublisher
 
 
@@ -24,7 +24,7 @@ class OpcUaPublisherTest(unittest.TestCase):
         publisher = OpcUaPublisher(endpoint=endpoint, mapping=mapping)
         observed_at = datetime(2026, 8, 1, tzinfo=timezone.utc)
         record = SensorRecord(
-            schema_version="1",
+            schema_version=SENSOR_RECORD_SCHEMA_VERSION,
             run_id="opcua-test",
             sequence=1,
             asset_id="CNC-S01-L01-01",
@@ -41,6 +41,8 @@ class OpcUaPublisherTest(unittest.TestCase):
             self.assertEqual(len(provenance), 1)
             self.assertEqual(provenance[0]["node_id"], "ns=2;s=CNC-S01-L01-01.torque_nm")
             self.assertEqual(provenance[0]["status_code"], "Good")
+            self.assertEqual(provenance[0]["schema_version"], "2")
+            self.assertEqual(provenance[0]["observation_id"], record.observation_id)
             self.assertEqual(
                 provenance[0]["source_timestamp"], observed_at.isoformat(timespec="seconds")
             )
