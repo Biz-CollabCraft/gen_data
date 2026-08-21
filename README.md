@@ -19,19 +19,25 @@ Canonical V3.1의 상세 물리·데이터 설명은 [`CANONICAL_V3_1.md`](./CAN
 
 ```text
 gen_data/
+├── app/
+│   ├── simulation/          # 기존 physics 기반 단일 SensorRecord producer
+│   ├── observation/         # SensorRecord 내부 계약
+│   ├── protocol/            # asyncua OPC UA publisher + configured-node collector
+│   ├── storage/             # source/protocol/canonical writer
+│   ├── runtime/             # run lifecycle / manual tick / safe stop
+│   └── api/                 # FastAPI control routes
+├── mappings/                # versioned OPC UA NodeId/DataType/unit mapping
 ├── canonical/
 │   ├── dataset/             # Canonical source observation
 │   ├── evaluation_truth/    # 평가/검증 전용 truth
 │   ├── model_outputs/       # 과거 ML/prediction/result reference fixture
 │   └── validation/          # source/reference 검증 기록
 ├── scripts/                 # 생성·검증·release tooling
-├── api/                     # source/reference fixture read-only API
 ├── agent/                   # evidence/claim 평가 fixture
 ├── experiments/             # source-side 실험 fixture
 ├── model/                   # migration/reference implementation
-├── tests/                   # truth-isolation regression test
-├── docs/                    # real-time daemon prototype/spec
-├── protocol/                # raw protocol envelope/adapters
+├── tests/                   # producer / OPC UA / runtime / canonical regression
+├── docs/                    # 현재 Source Data Producer 계약
 ├── physics_engine.py        # Canonical generator compatibility facade
 ├── CANONICAL_V3_1.md
 ├── SCHEMA.md
@@ -74,6 +80,56 @@ python3 -m venv .venv
 .venv/bin/pip install -r requirements-lock.txt
 ```
 
+## Runtime 실행
+
+운영 entrypoint는 FastAPI control layer입니다.
+
+```bash
+.venv/bin/python run.py
+```
+
+기본 endpoint:
+
+```text
+POST /api/runs
+POST /api/runs/{run_id}/tick
+POST /api/runs/{run_id}/stop
+GET  /api/runs/{run_id}
+GET  /api/runs/{run_id}/outputs
+GET  /health/live
+GET  /health/ready
+```
+
+`source_kind=simulation`에서는 `RuntimeManager`가 기존 physics를 한 번 계산해
+`SensorRecord`를 만들고, 같은 record를 source JSONL, OPC UA SDK DataValue
+publish/provenance, canonical CSV에 투영합니다.
+
+`source_kind=opcua`에서는 configured endpoint와 NodeId 목록에 실제 `asyncua`
+subscription을 생성하고 수신 `DataValue`를 동일 `SensorRecord` 경계로 정규화합니다.
+`StatusCode`, `SourceTimestamp`, `ServerTimestamp`, `received_at`을 provenance로 보존하고,
+연결이 끊기면 reconnect 후 subscription을 재생성합니다. unknown/ambiguous Node와
+잘못된 DataType/unit은 `protocol/quarantine.jsonl`에 격리하며 동일 notification은
+in-process dedup합니다. 이 기능은 SDK 수집 경계이며 실제 wire packet capture는 아닙니다.
+
+OPC UA source run 예시:
+
+```json
+{
+  "run_id": "plant-opcua-001",
+  "source_kind": "opcua",
+  "opcua_source_endpoint": "opc.tcp://127.0.0.1:4840/plant/",
+  "opcua_node_ids": [
+    "ns=2;s=CNC-S01-L01-01.torque_nm"
+  ],
+  "reconnect_seconds": 1.0,
+  "continuous": true
+}
+```
+
+실제 OPC UA notification은 measurement 단위로 들어오므로 collector는 불완전한
+DataValue 묶음을 기존 flat Canonical V3.1 row로 위조하지 않습니다. 기존 canonical
+CSV/manifest 계약은 완전한 simulation asset/tick snapshot에서 그대로 유지됩니다.
+
 ## 빠른 검증
 
 현재 checkout의 source/reference baseline을 검증합니다.
@@ -81,7 +137,7 @@ python3 -m venv .venv
 ```bash
 python3 scripts/validate_package.py
 python3 scripts/validate_reproducibility.py --days 5 --scope full
-python3 -m unittest tests/test_dataset_api_truth_isolation.py
+python3 -m pytest -q
 ```
 
 새 source를 생성하는 기본 orchestrator는 Canonical/source와 source-side fixture,
@@ -108,8 +164,8 @@ PR과 `main` push에서는 `.github/workflows/source-validation.yml`이 다음 �
 
 - Canonical/source 및 reference fixture package validation
 - seed 기반 full reproducibility validation
-- evaluation truth API 비노출 regression test
-- Canonical generator와 daemon/protocol import smoke
+- SensorRecord/OPC UA/runtime/FastAPI/canonical regression test
+- Canonical generator와 Source Data Producer import smoke
 - Python compile 및 whitespace 검증
 - validation output이 checkout의 기준 파일과 일치하는지 확인
 

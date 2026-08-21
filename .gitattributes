@@ -1,0 +1,5 @@
+# JSON/JSONL files participate in manifest SHA-256 contracts. Keep their
+# checkout bytes stable on Windows instead of letting core.autocrlf rewrite
+# LF to CRLF. CSV is intentionally omitted because csv.DictWriter uses CRLF.
+*.json text eol=lf
+*.jsonl text eol=lf

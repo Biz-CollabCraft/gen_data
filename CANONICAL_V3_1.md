@@ -233,61 +233,22 @@ PWF/HDF/OSF/TWF multiclass 결과가 아니다. 자세한 계약은
 `ontology_dashboard/systems/backend/diagnosis`다.** 제품 runtime이 위 JSONL 파일을
 최신 결과 SoT로 직접 소비하는 구조를 계약으로 삼지 않는다.
 
-## Source/reference fixture API
+## Source Data Producer runtime
 
-```bash
-.venv/bin/python api/dataset_server.py --port 8000
-```
-
-주요 endpoint:
+기존 Flask fixture/replay server는 실제 호출처가 없어 제거했다. 현재 runtime API는
+`run.py` → `app.main`의 FastAPI control layer 하나이며, 센서값 자체는
+`SimulationProducer`가 `SensorRecord`로 한 번만 계산한다.
 
 ```text
-GET /manifest
-GET /assets
-GET /relations
-GET /observations/compressors
-GET /observations/cnc
-GET /production
-GET /maintenance
-GET /predictions
-GET /prediction-factors
-GET /prediction-timeline
-GET /result-artifacts
-GET /experiments
+SimulationProducer
+  → SourceRecordWriter
+  → asyncua OPC UA DataValue publisher + provenance
+  → CanonicalWriter
 ```
 
-이 서버는 패키지 확인과 migration/regression 검증용 read-only 도구다. prediction 및
-Result Artifact endpoint가 있더라도 해당 응답은 `canonical/model_outputs/`의
-**reference fixture**를 보여주는 것이며 제품 운영 API가 아니다.
-
-evaluation truth와 experiment hidden truth를 읽거나 노출하는 endpoint 자체를
-제공하지 않는다. 두 truth 영역은 평가·검증 코드에서만 사용한다.
-
-## Source/reference Time Machine Replay Server
-
-```bash
-.venv/bin/python api/replay_server.py --port 8001 --speed 60
-```
-
-```text
-GET  /simulation/status
-GET  /simulation/snapshot
-GET  /simulation/history
-GET  /simulation/events
-
-POST /simulation/start
-POST /simulation/pause
-POST /simulation/resume
-POST /simulation/reset
-POST /simulation/speed?x=60
-POST /simulation/seek?time=2026-08-12T15:00:00+09:00
-```
-
-`/simulation/events`는 `text/event-stream` SSE를 사용한다.
-
-Replay의 sensor observation은 Canonical source를 그대로 재생한다. 함께 표시되는
-prediction timeline은 V3.1 deterministic replay **reference fixture**이며 운영 runtime
-inference는 `ontology_dashboard/systems/backend/diagnosis` 책임이다.
+OPC UA publisher는 SDK address space에 값을 게시하지만 wire packet capture나 실제 설비
+OPC UA subscription/collector를 제공하지 않는다. evaluation truth와 experiment hidden
+truth 역시 runtime API 입력/출력으로 노출하지 않는다.
 
 ## Agent benchmark
 

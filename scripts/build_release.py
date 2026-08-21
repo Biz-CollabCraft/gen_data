@@ -32,11 +32,12 @@ EXCLUDED_PARTS = {
 EXCLUDED_PATTERNS = {".DS_Store", "._*", "*.pyc", "*.pyo"}
 
 RELEASE_DIRECTORIES = (
+    "app",
     "agent",
-    "api",
     "canonical",
-    "dashboard",
+    "docs",
     "experiments",
+    "mappings",
     "model",
     "scripts",
     "tests",
@@ -51,10 +52,13 @@ RELEASE_TOP_LEVEL_FILES = (
     "V3_1_CHANGELOG.md",
     "V3_1_IMPLEMENTATION_REPORT.md",
     "V3_1_RELEASE_VERIFICATION.md",
+    "config.py",
+    "physics_engine.py",
     "requirements-lock.txt",
     "requirements-optional.txt",
     "requirements.txt",
     "result_artifact_sample.json",
+    "run.py",
 )
 
 

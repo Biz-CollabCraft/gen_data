@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import os
-import secrets
 from pathlib import Path
 
 
@@ -38,13 +37,9 @@ else:
     OUTPUT_DIR_SOURCE = "default_fallback"
 
 DEFAULTS: dict[str, object] = {
-    "GEN_DATA_SEED": 42,
-    "GEN_DATA_INTERVAL_MINUTES": 10,
-    "GEN_DATA_PRODUCT_CYCLE_MINUTES": 20,
-    "GEN_DATA_SPEED": 60,
-    "GEN_DATA_BACKFILL_HOURS": 6,
-    "GEN_DATA_MAX_PARALLEL_LINES": 20,
-    "GEN_DATA_PROTOCOL": "modbus_tcp",
+    "GEN_DATA_OPCUA_ENDPOINT": "opc.tcp://127.0.0.1:4840/gen-data/",
+    "GEN_DATA_API_HOST": "127.0.0.1",
+    "GEN_DATA_API_PORT": 8000,
 }
 
 
@@ -61,21 +56,8 @@ def _load_generation_settings() -> tuple[dict[str, object], str]:
 
 
 _settings, SETTINGS_SOURCE = _load_generation_settings()
-
-_env_seed = os.environ.get("GEN_DATA_SEED")
-_raw_seed = _env_seed if _env_seed is not None else _settings["GEN_DATA_SEED"]
-if str(_raw_seed).strip().lower() in {"random", "-1", "none"}:
-    # Resolve entropy once so every component in one run shares the same seed,
-    # while a later process receives a different seed.
-    GEN_DATA_SEED = secrets.SystemRandom().randrange(0, 2**63)
-    SEED_SOURCE = "random"
-else:
-    GEN_DATA_SEED = int(_raw_seed)
-    SEED_SOURCE = "env" if _env_seed is not None else SETTINGS_SOURCE
-
-GEN_DATA_INTERVAL_MINUTES = int(_settings["GEN_DATA_INTERVAL_MINUTES"])
-GEN_DATA_PRODUCT_CYCLE_MINUTES = int(_settings["GEN_DATA_PRODUCT_CYCLE_MINUTES"])
-GEN_DATA_SPEED = float(_settings["GEN_DATA_SPEED"])
-GEN_DATA_BACKFILL_HOURS = int(_settings["GEN_DATA_BACKFILL_HOURS"])
-GEN_DATA_MAX_PARALLEL_LINES = int(_settings["GEN_DATA_MAX_PARALLEL_LINES"])
-GEN_DATA_PROTOCOL = str(_settings["GEN_DATA_PROTOCOL"])
+GEN_DATA_OPCUA_ENDPOINT = os.environ.get(
+    "GEN_DATA_OPCUA_ENDPOINT", str(_settings["GEN_DATA_OPCUA_ENDPOINT"])
+)
+GEN_DATA_API_HOST = os.environ.get("GEN_DATA_API_HOST", str(_settings["GEN_DATA_API_HOST"]))
+GEN_DATA_API_PORT = int(os.environ.get("GEN_DATA_API_PORT", _settings["GEN_DATA_API_PORT"]))

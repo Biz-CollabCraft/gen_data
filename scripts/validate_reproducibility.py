@@ -51,7 +51,7 @@ def checksums(root: Path, scope: str) -> dict[str, str]:
             # Manifests contain created_at or hashes of manifests containing it.
             if path.name in {"dataset_manifest.json", "experiment_manifest.json"}:
                 continue
-            included[str(path.relative_to(root))] = sha256(path)
+            included[path.relative_to(root).as_posix()] = sha256(path)
     return included
 
 
