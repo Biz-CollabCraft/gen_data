@@ -46,6 +46,7 @@ class _RunContext:
         publish_opcua: bool,
         maintenance_event_file: Path | None,
         runtime_overlay_fast_forward_rows: int,
+        tick_interval_seconds: float | None = None,
     ) -> None:
         self.run_id = run_id
         self.simulation_session_id = simulation_session_id
@@ -57,6 +58,7 @@ class _RunContext:
         self.seed = seed
         self.rate_profile = rate_profile
         self.speed = speed
+        self.tick_interval_seconds = tick_interval_seconds
         self.continuous = continuous
         self.stop_event = threading.Event()
         self.lock = threading.RLock()
@@ -197,13 +199,19 @@ class _RunContext:
             return self.state
 
     def run_loop(self) -> None:
-        real_seconds_per_tick = (self.interval_minutes * 60) / max(self.speed, 0.001)
+        real_seconds_per_tick = self.tick_interval_seconds or (self.interval_minutes * 60) / max(self.speed, 0.001)
+        next_tick = time.monotonic()
         try:
             while not self.stop_event.is_set():
                 self.process_tick()
                 if self._closed or self.state.current_observed_at >= self.producer.end_at:
                     break
-                if self.stop_event.wait(real_seconds_per_tick):
+                next_tick += real_seconds_per_tick
+                now = time.monotonic()
+                # Skip missed deadlines instead of bursting or accumulating processing time.
+                if next_tick <= now:
+                    next_tick += (int((now - next_tick) / real_seconds_per_tick) + 1) * real_seconds_per_tick
+                if self.stop_event.wait(max(0.0, next_tick - now)):
                     break
         finally:
             if not self._closed:
@@ -309,6 +317,8 @@ class _RunContext:
                 "source_kind": "simulation",
                 "seed": self.seed,
                 "scenario": self.rate_profile,
+                "tick_interval_seconds": self.tick_interval_seconds or (self.interval_minutes * 60) / self.speed,
+                "observation_interval_minutes": self.interval_minutes,
                 "runtime_overlay_fast_forward_rows": (
                     self.runtime_overlay_fast_forward_rows
                 ),
@@ -566,6 +576,7 @@ class RuntimeManager:
         product_cycle_minutes: int = 20,
         rate_profile: str = "balanced_demo",
         speed: float = 60.0,
+        tick_interval_seconds: float | None = None,
         continuous: bool = True,
         publish_opcua: bool = True,
         source_kind: str = "simulation",
@@ -578,6 +589,10 @@ class RuntimeManager:
             raise ValueError(f"unsupported source_kind: {source_kind}")
         if speed <= 0:
             raise ValueError("speed must be positive")
+        if tick_interval_seconds is not None and not 0.1 <= tick_interval_seconds <= 3600:
+            raise ValueError("tick_interval_seconds must be between 0.1 and 3600")
+        if tick_interval_seconds is not None and source_kind != "simulation":
+            raise ValueError("tick_interval_seconds only applies to simulation sources")
         if duration_hours <= 0:
             raise ValueError("duration_hours must be positive")
         if (
@@ -641,6 +656,7 @@ class RuntimeManager:
                     seed=seed,
                     rate_profile=rate_profile,
                     speed=speed,
+                    tick_interval_seconds=tick_interval_seconds,
                     continuous=continuous,
                     publish_opcua=publish_opcua,
                     maintenance_event_file=self.maintenance_event_file,
