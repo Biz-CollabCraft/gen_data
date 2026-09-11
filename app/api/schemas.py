@@ -16,6 +16,8 @@ class StartRunRequest(BaseModel):
     product_cycle_minutes: int = Field(default=20, ge=1)
     rate_profile: str = "balanced_demo"
     speed: float = Field(default=60.0, gt=0)
+    tick_interval_seconds: float | None = Field(default=None, ge=0.1, le=3600,
+        description="Actual generation cadence in seconds. Overrides speed without changing observation timestamps.")
     continuous: bool = True
     publish_opcua: bool = True
     source_kind: Literal["simulation", "opcua"] = "simulation"
