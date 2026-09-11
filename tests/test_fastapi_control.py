@@ -25,7 +25,7 @@ class FastApiControlTest(unittest.TestCase):
                     json={
                         "run_id": "api-run",
                         "start_at": "2026-08-01T00:00:00+00:00",
-                        "duration_hours": 1,
+                        "duration_hours": 2,
                         "continuous": False,
                         "publish_opcua": False,
                     },
@@ -35,9 +35,16 @@ class FastApiControlTest(unittest.TestCase):
                 tick = client.post("/api/runs/api-run/tick")
                 self.assertEqual(tick.status_code, 200)
                 self.assertEqual(tick.json()["last_sequence"], 100)
-                self.assertEqual(client.get("/api/runs/api-run").json()["source_record_count"], 100)
+                fast_forward = client.post(
+                    "/api/runs/api-run/simulation/fast-forward",
+                    json={"target_elapsed_hours": 1},
+                )
+                self.assertEqual(fast_forward.status_code, 200)
+                self.assertEqual(fast_forward.json()["ticks_processed"], 5)
+                self.assertEqual(fast_forward.json()["generated_records"], 500)
+                self.assertEqual(client.get("/api/runs/api-run").json()["source_record_count"], 600)
                 outputs = client.get("/api/runs/api-run/outputs").json()
-                self.assertEqual(outputs["counts"]["canonical_observations"], 100)
+                self.assertEqual(outputs["counts"]["canonical_observations"], 600)
                 equipment = client.get(
                     "/api/runs/api-run/equipment/CNC-S01-L01-01"
                 )
